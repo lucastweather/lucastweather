@@ -15,6 +15,9 @@ import { Route as ApiRouteImport } from './routes/api'
 import { Route as AlertsRouteImport } from './routes/alerts'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiSubscriptionCheckRouteImport } from './routes/api.subscription-check'
+import { Route as ApiCheckoutRouteImport } from './routes/api.checkout'
+import { Route as ApiBillingPortalRouteImport } from './routes/api.billing-portal'
 
 const RadarRoute = RadarRouteImport.update({
   id: '/radar',
@@ -46,45 +49,97 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiSubscriptionCheckRoute = ApiSubscriptionCheckRouteImport.update({
+  id: '/subscription-check',
+  path: '/subscription-check',
+  getParentRoute: () => ApiRoute,
+} as any)
+const ApiCheckoutRoute = ApiCheckoutRouteImport.update({
+  id: '/checkout',
+  path: '/checkout',
+  getParentRoute: () => ApiRoute,
+} as any)
+const ApiBillingPortalRoute = ApiBillingPortalRouteImport.update({
+  id: '/billing-portal',
+  path: '/billing-portal',
+  getParentRoute: () => ApiRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/alerts': typeof AlertsRoute
-  '/api': typeof ApiRoute
+  '/api': typeof ApiRouteWithChildren
   '/premium': typeof PremiumRoute
   '/radar': typeof RadarRoute
+  '/api/billing-portal': typeof ApiBillingPortalRoute
+  '/api/checkout': typeof ApiCheckoutRoute
+  '/api/subscription-check': typeof ApiSubscriptionCheckRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/alerts': typeof AlertsRoute
-  '/api': typeof ApiRoute
+  '/api': typeof ApiRouteWithChildren
   '/premium': typeof PremiumRoute
   '/radar': typeof RadarRoute
+  '/api/billing-portal': typeof ApiBillingPortalRoute
+  '/api/checkout': typeof ApiCheckoutRoute
+  '/api/subscription-check': typeof ApiSubscriptionCheckRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/alerts': typeof AlertsRoute
-  '/api': typeof ApiRoute
+  '/api': typeof ApiRouteWithChildren
   '/premium': typeof PremiumRoute
   '/radar': typeof RadarRoute
+  '/api/billing-portal': typeof ApiBillingPortalRoute
+  '/api/checkout': typeof ApiCheckoutRoute
+  '/api/subscription-check': typeof ApiSubscriptionCheckRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/admin' | '/alerts' | '/api' | '/premium' | '/radar'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/alerts'
+    | '/api'
+    | '/premium'
+    | '/radar'
+    | '/api/billing-portal'
+    | '/api/checkout'
+    | '/api/subscription-check'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/admin' | '/alerts' | '/api' | '/premium' | '/radar'
-  id: '__root__' | '/' | '/admin' | '/alerts' | '/api' | '/premium' | '/radar'
+  to:
+    | '/'
+    | '/admin'
+    | '/alerts'
+    | '/api'
+    | '/premium'
+    | '/radar'
+    | '/api/billing-portal'
+    | '/api/checkout'
+    | '/api/subscription-check'
+  id:
+    | '__root__'
+    | '/'
+    | '/admin'
+    | '/alerts'
+    | '/api'
+    | '/premium'
+    | '/radar'
+    | '/api/billing-portal'
+    | '/api/checkout'
+    | '/api/subscription-check'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
   AlertsRoute: typeof AlertsRoute
-  ApiRoute: typeof ApiRoute
+  ApiRoute: typeof ApiRouteWithChildren
   PremiumRoute: typeof PremiumRoute
   RadarRoute: typeof RadarRoute
 }
@@ -133,17 +188,61 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/subscription-check': {
+      id: '/api/subscription-check'
+      path: '/subscription-check'
+      fullPath: '/api/subscription-check'
+      preLoaderRoute: typeof ApiSubscriptionCheckRouteImport
+      parentRoute: typeof ApiRoute
+    }
+    '/api/checkout': {
+      id: '/api/checkout'
+      path: '/checkout'
+      fullPath: '/api/checkout'
+      preLoaderRoute: typeof ApiCheckoutRouteImport
+      parentRoute: typeof ApiRoute
+    }
+    '/api/billing-portal': {
+      id: '/api/billing-portal'
+      path: '/billing-portal'
+      fullPath: '/api/billing-portal'
+      preLoaderRoute: typeof ApiBillingPortalRouteImport
+      parentRoute: typeof ApiRoute
+    }
   }
 }
+
+interface ApiRouteChildren {
+  ApiBillingPortalRoute: typeof ApiBillingPortalRoute
+  ApiCheckoutRoute: typeof ApiCheckoutRoute
+  ApiSubscriptionCheckRoute: typeof ApiSubscriptionCheckRoute
+}
+
+const ApiRouteChildren: ApiRouteChildren = {
+  ApiBillingPortalRoute: ApiBillingPortalRoute,
+  ApiCheckoutRoute: ApiCheckoutRoute,
+  ApiSubscriptionCheckRoute: ApiSubscriptionCheckRoute,
+}
+
+const ApiRouteWithChildren = ApiRoute._addFileChildren(ApiRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
   AlertsRoute: AlertsRoute,
-  ApiRoute: ApiRoute,
+  ApiRoute: ApiRouteWithChildren,
   PremiumRoute: PremiumRoute,
   RadarRoute: RadarRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
