@@ -458,11 +458,35 @@ function ForecastRow({ day, index }: { day: DailyForecast; index: number }) {
         </span>
       </button>
       {open && (
-        <div className="px-12 pb-3 text-xs text-muted-foreground">
-          High {Math.round(day.tMax)}°F · Low {Math.round(day.tMin)}°F · Precip{" "}
-          {day.precipSum.toFixed(2)}" · Chance {day.precipProb ?? 0}%
+        <div className="px-12 pb-3 text-xs text-muted-foreground space-y-1">
+          <p className="text-foreground/80">{forecastNarrative(day)}</p>
+          <p>
+            High {Math.round(day.tMax)}°F · Low {Math.round(day.tMin)}°F · Precip{" "}
+            {day.precipSum.toFixed(2)}" · Chance {day.precipProb ?? 0}%
+          </p>
         </div>
       )}
     </li>
   );
+}
+
+/**
+ * Returns the minutely series, but if the radar shows precipitation overhead
+ * and the model says zero, lift the series to a light baseline so the chart
+ * never under-reports rain that's actually falling. We never go the other way:
+ * if the model predicts rain, we trust it.
+ */
+function syncedMinutely(
+  base: MinutelyPoint[],
+  radar: { intensity: number; hasRain: boolean },
+): MinutelyPoint[] {
+  if (!radar.hasRain || base.length === 0) return base;
+  const modelTotal = base.reduce((s, m) => s + m.precip, 0);
+  if (modelTotal > 0.01) return base;
+  const baseline = Math.max(0.005, Math.min(0.05, radar.intensity * 0.04));
+  return base.map((m, i) => ({
+    ...m,
+    precip: Math.max(m.precip, baseline * (1 - Math.min(1, i / 60) * 0.5)),
+    precipProb: Math.max(m.precipProb, 70),
+  }));
 }
