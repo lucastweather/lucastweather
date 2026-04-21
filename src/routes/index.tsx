@@ -24,12 +24,15 @@ import {
   fetchEarthquakes,
   weatherIcon,
   weatherLabel,
+  forecastNarrative,
   type CurrentWeather,
   type DailyForecast,
   type HourlyPoint,
   type MinutelyPoint,
   type Earthquake,
 } from "@/lib/weather";
+import RadarMap from "@/components/RadarMap";
+import EarthquakeMap from "@/components/EarthquakeMap";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -58,6 +61,12 @@ function WeatherPage() {
   const [magFilter, setMagFilter] = useState<number>(3);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
+  // Radar-driven nowcast intensity (0..1) — used to sync MinuteCast so it
+  // never claims "no rain" when the radar is showing precipitation overhead.
+  const [radarRain, setRadarRain] = useState<{ intensity: number; hasRain: boolean }>({
+    intensity: 0,
+    hasRain: false,
+  });
 
   useEffect(() => {
     let cancelled = false;
