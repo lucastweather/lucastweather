@@ -5,9 +5,8 @@ import { useFavorites } from "@/lib/favorites-store";
 import { useSubscription } from "@/lib/auth-store";
 
 type CamSource =
-  | { kind: "youtube"; id: string }
   | { kind: "iframe"; url: string }
-  | { kind: "image"; url: string }; // refresh-style still image cam
+  | { kind: "image"; url: string };
 
 type Cam = {
   id: string;
@@ -18,196 +17,102 @@ type Cam = {
   source: CamSource;
 };
 
-// Curated public live feeds. We heavily favor IMAGE-based refresh cams from
-// NPS, USGS, NOAA, and university observatories — these always render. A few
-// well-known YouTube live broadcasts are included but YouTube embeds are
-// blocked by some channels; if blocked the user sees the thumbnail. Image
-// cams are always reliable.
 const CAMERAS: Cam[] = [
-  // ---------- Yosemite (NPS refresh cams — always work) ----------
   {
-    id: "yosemite-half-dome",
-    name: "Half Dome",
+    id: "yosemite-valley",
+    name: "Yosemite Valley",
     region: "Yosemite NP, CA",
-    lat: 37.7459,
-    lon: -119.5332,
-    source: { kind: "image", url: "https://www.nps.gov/webcams-yose/halfdome.jpg" },
+    lat: 37.7486,
+    lon: -119.5886,
+    source: { kind: "image", url: "https://www.nps.gov/featurecontent/ard/webcams/images/yoselarge.jpg" },
   },
   {
-    id: "yosemite-falls",
-    name: "Yosemite Falls",
+    id: "happy-isles-bridge",
+    name: "Happy Isles Bridge",
     region: "Yosemite NP, CA",
-    lat: 37.756,
-    lon: -119.5963,
-    source: { kind: "image", url: "https://www.nps.gov/webcams-yose/yosefalls.jpg" },
+    lat: 37.7325,
+    lon: -119.5586,
+    source: { kind: "image", url: "https://usgs-nims-images.s3.amazonaws.com/overlay/CA_Merced_River_at_Happy_Isles_Bridge_Yosemite/CA_Merced_River_at_Happy_Isles_Bridge_Yosemite_newest.jpg" },
   },
   {
-    id: "yosemite-elcap",
-    name: "El Capitan",
+    id: "badger-pass",
+    name: "Badger Pass",
     region: "Yosemite NP, CA",
-    lat: 37.734,
-    lon: -119.6377,
-    source: { kind: "image", url: "https://www.nps.gov/webcams-yose/elcap.jpg" },
+    lat: 37.6626,
+    lon: -119.6637,
+    source: { kind: "image", url: "https://pixelcaster.com/aramark/yosemite-ski.jpg" },
   },
   {
-    id: "yosemite-turtleback",
-    name: "Turtleback Dome",
-    region: "Yosemite NP, CA",
-    lat: 37.715,
-    lon: -119.7,
-    source: { kind: "image", url: "https://www.nps.gov/webcams-yose/turtle.jpg" },
-  },
-  // ---------- USGS Hawaii volcanoes (always work) ----------
-  {
-    id: "kilauea-summit",
-    name: "Kīlauea Summit",
-    region: "Hawaiʻi Volcanoes NP",
-    lat: 19.4119,
-    lon: -155.2839,
-    source: {
-      kind: "image",
-      url: "https://volcanoes.usgs.gov/vsc/captures/kilauea/KWcam/KWcam.jpg",
-    },
-  },
-  {
-    id: "mauna-loa",
-    name: "Mauna Loa Summit",
-    region: "Hawaiʻi Volcanoes NP",
-    lat: 19.4756,
-    lon: -155.6056,
-    source: {
-      kind: "image",
-      url: "https://volcanoes.usgs.gov/vsc/captures/mauna_loa/MOKcam/MOKcam.jpg",
-    },
-  },
-  // ---------- USGS Cascades ----------
-  {
-    id: "mt-st-helens",
-    name: "Mount St. Helens",
-    region: "Washington",
-    lat: 46.1912,
-    lon: -122.1944,
-    source: {
-      kind: "image",
-      url: "https://volcanoes.usgs.gov/vsc/captures/mount_st._helens/MSHcam/MSHcam.jpg",
-    },
-  },
-  // ---------- NOAA / NPS scenic ----------
-  {
-    id: "old-faithful-still",
-    name: "Old Faithful Geyser",
+    id: "yellowstone-east-entrance",
+    name: "East Entrance",
     region: "Yellowstone NP, WY",
-    lat: 44.4605,
-    lon: -110.8281,
-    source: {
-      kind: "image",
-      url: "https://www.nps.gov/yell/learn/photosmultimedia/webcams.htm?cam=ofvec",
-    },
-  },
-  // ---------- YouTube live broadcasts (may show thumbnail if embedding blocked) ----------
-  {
-    id: "sf-golden-gate",
-    name: "Golden Gate Bridge",
-    region: "San Francisco, CA",
-    lat: 37.8199,
-    lon: -122.4783,
-    source: { kind: "youtube", id: "kKpmwTsrSwk" },
+    lat: 44.5606,
+    lon: -110.3982,
+    source: { kind: "image", url: "https://www.nps.gov/webcams-yell/east_in.jpg" },
   },
   {
-    id: "monterey-bay-aquarium-otters",
-    name: "Sea Otter Cam",
-    region: "Monterey, CA",
-    lat: 36.6181,
-    lon: -121.9019,
-    source: { kind: "youtube", id: "iYz4-yU9_o4" },
+    id: "yellowstone-east-exit",
+    name: "East Exit",
+    region: "Yellowstone NP, WY",
+    lat: 44.5641,
+    lon: -110.4002,
+    source: { kind: "image", url: "https://www.nps.gov/webcams-yell/east_out.jpg" },
   },
   {
-    id: "monterey-bay-kelp",
-    name: "Kelp Forest Cam",
-    region: "Monterey, CA",
-    lat: 36.6181,
-    lon: -121.9019,
-    source: { kind: "youtube", id: "0i4yShQEnpE" },
+    id: "mammoth-arch",
+    name: "Mammoth Arch",
+    region: "Yellowstone NP, WY",
+    lat: 44.9769,
+    lon: -110.7013,
+    source: { kind: "image", url: "https://www.nps.gov/webcams-yell/mammoth_arch.jpg" },
   },
   {
-    id: "nyc-times-square",
-    name: "Times Square",
-    region: "New York, NY",
-    lat: 40.758,
-    lon: -73.9855,
-    source: { kind: "youtube", id: "rnXIjl_Rzy4" },
+    id: "mammoth-electric-peak",
+    name: "Electric Peak",
+    region: "Yellowstone NP, WY",
+    lat: 44.9769,
+    lon: -110.7013,
+    source: { kind: "image", url: "https://www.nps.gov/webcams-yell/mammoth_electric.jpg" },
   },
   {
-    id: "venice-beach",
-    name: "Venice Beach Boardwalk",
-    region: "Los Angeles, CA",
-    lat: 33.985,
-    lon: -118.4695,
-    source: { kind: "youtube", id: "QFyVJsXrh3w" },
+    id: "mammoth-parade",
+    name: "Mammoth Parade",
+    region: "Yellowstone NP, WY",
+    lat: 44.9769,
+    lon: -110.7013,
+    source: { kind: "image", url: "https://www.nps.gov/webcams-yell/mammoth_parade.jpg" },
   },
   {
-    id: "miami-beach",
-    name: "Miami South Beach",
-    region: "Miami, FL",
-    lat: 25.7825,
-    lon: -80.134,
-    source: { kind: "youtube", id: "wAxXAOuwBPk" },
+    id: "mount-washburn-ne",
+    name: "Mount Washburn NE",
+    region: "Yellowstone NP, WY",
+    lat: 44.7979,
+    lon: -110.4348,
+    source: { kind: "image", url: "https://www.nps.gov/webcams-yell/washburn_ne.jpg" },
   },
   {
-    id: "key-west-southernmost",
-    name: "Key West Southernmost",
-    region: "Key West, FL",
-    lat: 24.5465,
-    lon: -81.7977,
-    source: { kind: "youtube", id: "uTkuZK-_uxo" },
+    id: "mount-washburn-sw",
+    name: "Mount Washburn SW",
+    region: "Yellowstone NP, WY",
+    lat: 44.7979,
+    lon: -110.4348,
+    source: { kind: "image", url: "https://www.nps.gov/webcams-yell/washburn_sw.jpg" },
   },
   {
-    id: "katmai-bears",
-    name: "Katmai Brown Bears",
-    region: "Katmai, AK",
-    lat: 58.5458,
-    lon: -155.7762,
-    source: { kind: "youtube", id: "Y3ELJoE7crQ" },
+    id: "yellowstone-west-gate",
+    name: "West Gate",
+    region: "Yellowstone NP, MT",
+    lat: 44.6564,
+    lon: -111.0963,
+    source: { kind: "image", url: "https://www.nps.gov/webcams-yell/west_gate.jpg" },
   },
   {
-    id: "maui-kaanapali",
-    name: "Kaanapali Beach",
-    region: "Maui, HI",
-    lat: 20.9217,
-    lon: -156.6947,
-    source: { kind: "youtube", id: "PT2_F-1esPk" },
-  },
-  {
-    id: "london-tower-bridge",
-    name: "Tower Bridge London",
-    region: "London, UK",
-    lat: 51.5055,
-    lon: -0.0754,
-    source: { kind: "youtube", id: "fis5Yk20j6w" },
-  },
-  {
-    id: "venice-rialto",
-    name: "Rialto Bridge Venice",
-    region: "Venice, IT",
-    lat: 45.438,
-    lon: 12.3358,
-    source: { kind: "youtube", id: "Ogc2nNcimTQ" },
-  },
-  {
-    id: "tokyo-shinjuku",
-    name: "Shinjuku Kabukicho",
-    region: "Tokyo, JP",
-    lat: 35.6938,
-    lon: 139.7036,
-    source: { kind: "youtube", id: "DjdUEyjx8GM" },
-  },
-  {
-    id: "rio-copacabana",
-    name: "Copacabana Beach",
-    region: "Rio de Janeiro, BR",
-    lat: -22.9711,
-    lon: -43.1822,
-    source: { kind: "youtube", id: "lc1Q7XX7qkg" },
+    id: "yellowstone-west-entrance",
+    name: "West Entrance",
+    region: "Yellowstone NP, MT",
+    lat: 44.6544,
+    lon: -111.0915,
+    source: { kind: "image", url: "https://www.nps.gov/webcams-yell/west_into.jpg" },
   },
 ];
 
@@ -223,22 +128,14 @@ function haversineMi(lat1: number, lon1: number, lat2: number, lon2: number) {
 }
 
 function srcUrl(c: Cam) {
-  if (c.source.kind === "youtube") {
-    return `https://www.youtube.com/embed/${c.source.id}?autoplay=1&mute=1&controls=1&modestbranding=1&playsinline=1&rel=0`;
-  }
   return c.source.url;
 }
 
 function externalUrl(c: Cam) {
-  if (c.source.kind === "youtube") return `https://www.youtube.com/watch?v=${c.source.id}`;
-  return (c.source as any).url;
+  return c.source.url;
 }
 
 function thumbUrl(c: Cam) {
-  if (c.source.kind === "youtube") {
-    return `https://i.ytimg.com/vi/${c.source.id}/hqdefault.jpg`;
-  }
-  // Image cams: use the live still as the thumbnail too (with cache-bust).
   return `${c.source.url}?t=${Math.floor(Date.now() / 60000)}`;
 }
 
@@ -265,14 +162,12 @@ export default function WeatherCameras({
   const { subscribed } = useSubscription();
   const { cameras: favCams, isFavoriteCamera, addCamera, remove } = useFavorites();
 
-  // Build favorite cam objects (only the ones in our catalog).
   const favCamObjects = useMemo(() => {
     return favCams
       .map((f) => CAMERAS.find((c) => c.id === f.ref_id))
       .filter((c): c is Cam => !!c);
   }, [favCams]);
 
-  // Combined list: favorites first (premium), then nearest (deduped).
   const displayCams = useMemo(() => {
     if (!subscribed || favCamObjects.length === 0) return nearest;
     const favIds = new Set(favCamObjects.map((c) => c.id));
@@ -375,10 +270,6 @@ export default function WeatherCameras({
                       alt={cam.name}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                       loading="lazy"
-                      onError={(e) => {
-                        (e.currentTarget as HTMLImageElement).src =
-                          "https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?w=600&q=60";
-                      }}
                     />
                     <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/50 transition-colors">
                       <div className="size-12 rounded-full bg-primary/90 flex items-center justify-center backdrop-blur shadow-lg">
@@ -433,9 +324,7 @@ export default function WeatherCameras({
         </div>
       )}
       <p className="text-[10px] text-muted-foreground mt-3 font-mono">
-        Streams sourced from public YouTube live broadcasts (EarthCam, SkylineWebcams),
-        NPS Yosemite & Yellowstone refresh cams, and USGS volcano cams. Click any tile for
-        fullscreen with live conditions overlay.
+        Reliable public park camera feeds with fullscreen viewing and live weather overlay.
         {!subscribed && " Upgrade to Premium to favorite cameras."}
       </p>
 
@@ -468,17 +357,7 @@ function TheaterView({
   return (
     <div className="space-y-3">
       <div className="aspect-video rounded-xl overflow-hidden border border-border bg-black relative group">
-        {featured.source.kind === "image" ? (
-          <RefreshingImage url={featured.source.url} alt={featured.name} />
-        ) : (
-          <iframe
-            src={srcUrl(featured)}
-            title={featured.name}
-            className="w-full h-full"
-            allow="autoplay; encrypted-media; picture-in-picture"
-            allowFullScreen
-          />
-        )}
+        <RefreshingImage url={featured.source.url} alt={featured.name} />
         <div className="absolute top-3 left-3 chip px-2 py-1 text-xs font-mono flex items-center gap-1.5">
           <span className="size-1.5 rounded-full bg-danger animate-pulse" /> LIVE
         </div>
@@ -514,10 +393,6 @@ function TheaterView({
               alt={c.name}
               className="w-full h-full object-cover"
               loading="lazy"
-              onError={(e) => {
-                (e.currentTarget as HTMLImageElement).src =
-                  "https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?w=300&q=60";
-              }}
             />
             <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-1">
               <div className="text-white text-[10px] font-medium truncate">{c.name}</div>
@@ -541,10 +416,6 @@ function RefreshingImage({ url, alt }: { url: string; alt: string }) {
       alt={alt}
       className="w-full h-full object-cover"
       loading="lazy"
-      onError={(e) => {
-        (e.currentTarget as HTMLImageElement).src =
-          "https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?w=600&q=60";
-      }}
     />
   );
 }
@@ -602,8 +473,7 @@ function CameraMap({
         mapRef.current = null;
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cams.map((c) => c.id).join(",")]);
+  }, [cams, centerLat, centerLon, onSelect]);
 
   return (
     <div className="rounded-xl overflow-hidden border border-border aspect-[16/9] bg-surface-2 relative">

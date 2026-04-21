@@ -91,7 +91,6 @@ function PremiumPage() {
       const { url } = await createCheckout({
         data: {
           tier: tier.name,
-          amountCents: tier.priceCents,
           successUrl: `${window.location.origin}/premium?status=success`,
           cancelUrl: `${window.location.origin}/premium?status=cancelled`,
         },

@@ -250,10 +250,10 @@ function WeatherPage() {
           </span>
         </h2>
         <RadarMap
-          key={`home-${city.id}`}
+          key={`home-${city.id}-${subscribed}`}
           lat={city.latitude}
           lon={city.longitude}
-          showForecast
+          showForecast={subscribed}
           onNowcast={(intensity, hasRain) => setRadarRain({ intensity, hasRain })}
         />
       </section>
