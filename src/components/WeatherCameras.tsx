@@ -1,5 +1,8 @@
-import { Camera, MapPin, ExternalLink, Map as MapIcon, Grid3x3 } from "lucide-react";
+import { Camera, MapPin, ExternalLink, Map as MapIcon, Grid3x3, Star, Maximize2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import CameraLightbox from "@/components/CameraLightbox";
+import { useFavorites } from "@/lib/favorites-store";
+import { useSubscription } from "@/lib/auth-store";
 
 type CamSource =
   | { kind: "youtube"; id: string }
