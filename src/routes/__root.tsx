@@ -29,14 +29,18 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
+      { title: "Lucast Weather" },
+      { name: "description", content: "Get hyper-accurate weather forecasts, live camera feeds, and radar maps." },
       { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { property: "og:title", content: "Lucast Weather" },
+      { property: "og:description", content: "Get hyper-accurate weather forecasts, live camera feeds, and radar maps." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "Lucast Weather" },
+      { name: "twitter:description", content: "Get hyper-accurate weather forecasts, live camera feeds, and radar maps." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/3d356698-b782-4b2a-88f3-19b4878942ff/id-preview-ad93f233--302d67a6-3b2c-4a05-ad2c-1f5ff349c99a.lovable.app-1776737637690.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/3d356698-b782-4b2a-88f3-19b4878942ff/id-preview-ad93f233--302d67a6-3b2c-4a05-ad2c-1f5ff349c99a.lovable.app-1776737637690.png" },
     ],
     links: [
       {
