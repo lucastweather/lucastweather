@@ -164,6 +164,36 @@ export function weatherIcon(code: number, isDay = true, cloudCover = 0): string 
   return isDay ? "⛅" : "☁️";
 }
 
+/**
+ * Build a short human-readable narrative for a daily forecast row. Combines
+ * conditions, temperature spread, and precipitation outlook into one sentence
+ * the way a TV meteorologist would phrase it.
+ */
+export function forecastNarrative(d: DailyForecast): string {
+  const cond = weatherLabel(d.weatherCode).toLowerCase();
+  const high = Math.round(d.tMax);
+  const low = Math.round(d.tMin);
+  let precip = "";
+  if (d.precipSum >= 0.5) {
+    precip = ` Heavy rainfall expected (${d.precipSum.toFixed(2)}" total).`;
+  } else if (d.precipSum >= 0.1) {
+    precip = ` Periods of rain likely (${d.precipSum.toFixed(2)}").`;
+  } else if ((d.precipProb ?? 0) >= 40) {
+    precip = ` Scattered showers possible (${d.precipProb}% chance).`;
+  } else if ((d.precipProb ?? 0) >= 15) {
+    precip = ` Slight chance of a passing shower.`;
+  } else {
+    precip = ` Dry conditions throughout the day.`;
+  }
+  let temp = "";
+  if (high - low >= 25) temp = " Big diurnal swing — bundle up after sunset.";
+  else if (high >= 90) temp = " Hot and uncomfortable; stay hydrated.";
+  else if (high <= 35) temp = " Bitterly cold; dress in layers.";
+  else if (high <= 50) temp = " Crisp and cool throughout the day.";
+  else temp = " Comfortable temperatures.";
+  return `Expect ${cond} with a high near ${high}°F and a low around ${low}°F.${precip}${temp}`;
+}
+
 export function weatherLabel(code: number, cloudCover = 0): string {
   const map: Record<number, string> = {
     0: "Clear sky",
