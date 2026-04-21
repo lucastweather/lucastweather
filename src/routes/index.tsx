@@ -227,27 +227,55 @@ function WeatherPage() {
         )}
       </section>
 
-      {/* MinuteCast — minute by minute */}
+      {/* Live radar (synced with MinuteCast below) */}
+      <section className="panel p-6">
+        <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
+          <span>📡</span> Live Radar
+          <span className="chip px-2 py-0.5 text-[10px] text-primary border-primary/30">
+            Past 2h + 30-min outlook
+          </span>
+        </h2>
+        <RadarMap
+          key={`home-${city.id}`}
+          lat={city.latitude}
+          lon={city.longitude}
+          showForecast
+          onNowcast={(intensity, hasRain) => setRadarRain({ intensity, hasRain })}
+        />
+      </section>
+
+      {/* MinuteCast — minute by minute, synchronized with radar nowcast */}
       <section className="panel p-6">
         <h2 className="text-lg font-semibold mb-1 flex items-center gap-2">
           <span>🌧️</span> MinuteCast
           <span className="chip px-2 py-0.5 text-[10px] text-primary border-primary/30">
             Minute-by-minute · 60 min
           </span>
+          {radarRain.hasRain && (
+            <span className="chip px-2 py-0.5 text-[10px] text-warning border-warning/40">
+              Radar-synced
+            </span>
+          )}
         </h2>
         <p className="text-sm text-muted-foreground mb-4">
           {(() => {
             if (!data) return "Loading minute-by-minute precipitation…";
-            const next = data.minutely;
-            if (next.length === 0) return "Minute-by-minute data unavailable for this region.";
+            const next = syncedMinutely(data.minutely, radarRain);
+            if (next.length === 0)
+              return "Minute-by-minute data unavailable for this region.";
             const total = next.reduce((s, m) => s + m.precip, 0);
-            if (total < 0.001) return "No precipitation expected in the next 60 minutes.";
+            if (total < 0.001 && !radarRain.hasRain)
+              return "No precipitation expected in the next 60 minutes.";
+            if (radarRain.hasRain && total < 0.001) {
+              return "Radar shows precipitation overhead — light, brief sprinkles likely.";
+            }
             const startIdx = next.findIndex((m) => m.precip > 0.001);
-            const endIdx = next.length - 1 - [...next].reverse().findIndex((m) => m.precip > 0.001);
+            const endIdx =
+              next.length - 1 - [...next].reverse().findIndex((m) => m.precip > 0.001);
             return `Precipitation from minute ${startIdx} to ${endIdx} · ${total.toFixed(2)}" total`;
           })()}
         </p>
-        <MinuteCastChart minutely={data?.minutely ?? []} />
+        <MinuteCastChart minutely={syncedMinutely(data?.minutely ?? [], radarRain)} />
         <div className="mt-3 flex gap-3 text-xs text-muted-foreground">
           <span className="flex items-center gap-1">
             <span className="size-2 rounded-sm bg-primary/30" />
