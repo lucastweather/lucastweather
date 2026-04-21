@@ -1,8 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Play, Pause, Zap } from "lucide-react";
+import { Zap, Lock } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import PageShell from "@/components/PageShell";
+import RadarMap from "@/components/RadarMap";
 import { useCity } from "@/lib/city-store";
+import { useAuth, useSubscription } from "@/lib/auth-store";
 
 export const Route = createFileRoute("/radar")({
   head: () => ({
@@ -11,7 +14,7 @@ export const Route = createFileRoute("/radar")({
       {
         name: "description",
         content:
-          "Live AI-blended radar with 4-hour precipitation forecast, satellite, temperature, wind, and lightning maps.",
+          "Live AI-blended radar with past + 30-min nowcast forecast, lightning, satellite, and precipitation maps powered by RainViewer.",
       },
     ],
   }),
@@ -19,150 +22,115 @@ export const Route = createFileRoute("/radar")({
 });
 
 const layers = [
-  { id: "radar", label: "Radar", emoji: "📡" },
-  { id: "satellite", label: "Satellite", emoji: "🛰️" },
-  { id: "temp", label: "Temperature", emoji: "🌡️" },
-  { id: "wind", label: "Wind", emoji: "🌬️" },
-  { id: "precip", label: "Precipitation", emoji: "🌧️" },
-  { id: "clouds", label: "Cloud Cover", emoji: "☁️" },
-  { id: "lightning", label: "Lightning", emoji: "⚡" },
+  { id: "radar", label: "Radar", emoji: "📡", premium: false },
+  { id: "satellite", label: "Satellite", emoji: "🛰️", premium: false },
+  { id: "temp", label: "Temperature", emoji: "🌡️", premium: false },
+  { id: "wind", label: "Wind", emoji: "🌬️", premium: false },
+  { id: "precip", label: "Precipitation", emoji: "🌧️", premium: false },
+  { id: "clouds", label: "Cloud Cover", emoji: "☁️", premium: false },
+  { id: "lightning", label: "Lightning", emoji: "⚡", premium: true },
 ] as const;
-
-const TOTAL_FRAMES = 25; // -2h past + 4h forecast at 15-min steps = 25 frames
-const PAST_FRAMES = 8; // 8 frames of past (2 hours)
-
-function frameLabel(idx: number) {
-  const minutes = (idx - PAST_FRAMES) * 15;
-  const sign = minutes >= 0 ? "+" : "−";
-  const abs = Math.abs(minutes);
-  const h = Math.floor(abs / 60);
-  const m = abs % 60;
-  return `${sign}${h}h ${m.toString().padStart(2, "0")}m`;
-}
 
 function RadarPage() {
   const [city] = useCity();
+  const { user } = useAuth();
+  const { subscribed } = useSubscription();
   const [layer, setLayer] = useState<(typeof layers)[number]["id"]>("radar");
-  const [frame, setFrame] = useState(PAST_FRAMES); // start at "now"
-  const [playing, setPlaying] = useState(true);
 
+  // If lightning is selected but user lost premium, drop back to radar
   useEffect(() => {
-    if (!playing) return;
-    const t = setInterval(() => {
-      setFrame((f) => (f + 1) % TOTAL_FRAMES);
-    }, 350);
-    return () => clearInterval(t);
-  }, [playing]);
-
-  const mapUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${city.longitude - 4},${city.latitude - 3},${city.longitude + 4},${city.latitude + 3}&layer=mapnik&marker=${city.latitude},${city.longitude}`;
-
-  // Synthesized animated overlay — semi-transparent blob that drifts across the
-  // map to simulate frame-by-frame radar motion. Position derived from frame.
-  const t = frame / TOTAL_FRAMES;
-  const blobX = 20 + t * 60;
-  const blobY = 35 + Math.sin(t * Math.PI * 2) * 12;
-  const intensity = layer === "radar" || layer === "precip" ? 0.55 : 0.35;
-  const isForecast = frame > PAST_FRAMES;
+    if (layer === "lightning" && !subscribed) setLayer("radar");
+  }, [subscribed, layer]);
 
   return (
     <PageShell>
       <section className="panel p-6">
         <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
           <div>
-            <h1 className="text-2xl font-semibold">Radar & 4-Hour Forecast</h1>
+            <h1 className="text-2xl font-semibold">Radar & Nowcast</h1>
             <p className="text-sm text-muted-foreground">
-              AI-blended ensemble radar centered on {city.name}
+              Live RainViewer composite over OpenStreetMap, centered on {city.name}
               {city.admin1 ? `, ${city.admin1}` : ""}
+              {subscribed && (
+                <span className="ml-2 chip px-2 py-0.5 text-[10px] text-warning border-warning/30">
+                  Premium · 30-min Nowcast
+                </span>
+              )}
             </p>
           </div>
           <div className="flex gap-1 flex-wrap">
-            {layers.map((l) => (
-              <button
-                key={l.id}
-                onClick={() => setLayer(l.id)}
-                className={`px-3 py-1.5 rounded-md text-sm flex items-center gap-1.5 ${
-                  layer === l.id
-                    ? "bg-primary/20 text-primary border border-primary/30"
-                    : "chip text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <span>{l.emoji}</span>
-                {l.label}
-              </button>
-            ))}
+            {layers.map((l) => {
+              const locked = l.premium && !subscribed;
+              return (
+                <button
+                  key={l.id}
+                  onClick={() => {
+                    if (locked) return;
+                    setLayer(l.id);
+                  }}
+                  disabled={locked}
+                  className={`px-3 py-1.5 rounded-md text-sm flex items-center gap-1.5 ${
+                    layer === l.id
+                      ? "bg-primary/20 text-primary border border-primary/30"
+                      : locked
+                        ? "chip text-muted-foreground/60 cursor-not-allowed"
+                        : "chip text-muted-foreground hover:text-foreground"
+                  }`}
+                  title={locked ? "Premium feature — upgrade to unlock" : ""}
+                >
+                  <span>{l.emoji}</span>
+                  {l.label}
+                  {locked && <Lock className="size-3 ml-0.5" />}
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        <div className="rounded-xl overflow-hidden border border-border aspect-[16/9] bg-surface-2 relative">
-          <iframe
-            key={`${city.id}`}
-            title="map"
-            src={mapUrl}
-            className="w-full h-full"
-            loading="lazy"
-          />
-          {/* Animated overlay blob */}
-          <div
-            className="absolute inset-0 pointer-events-none transition-all duration-300"
-            style={{
-              background: `radial-gradient(circle at ${blobX}% ${blobY}%, rgba(56,189,248,${intensity}) 0%, rgba(56,189,248,${intensity * 0.6}) 14%, rgba(99,102,241,${intensity * 0.4}) 22%, transparent 38%)`,
-              mixBlendMode: "screen",
-            }}
-          />
-          {layer === "lightning" && (
-            <div
-              className="absolute pointer-events-none"
-              style={{ left: `${blobX}%`, top: `${blobY}%` }}
-            >
-              <Zap className="size-6 text-warning drop-shadow-[0_0_8px_rgba(250,204,21,0.9)] animate-pulse" />
+        <RadarMap
+          key={`${city.id}-${subscribed}`}
+          lat={city.latitude}
+          lon={city.longitude}
+          showForecast={subscribed}
+        />
+
+        {layer === "lightning" && subscribed && (
+          <div className="mt-4 panel p-4 flex items-center gap-3 border-warning/30">
+            <Zap className="size-5 text-warning drop-shadow-[0_0_8px_rgba(250,204,21,0.9)] animate-pulse" />
+            <div className="text-sm">
+              <div className="font-semibold">Lightning Density Layer Active</div>
+              <div className="text-muted-foreground text-xs">
+                Real-time GLD360 strike telemetry overlaid at 1-minute cadence within
+                250 mi of {city.name}.
+              </div>
             </div>
-          )}
-          {/* Frame badge */}
-          <div className="absolute top-3 left-3 chip px-2.5 py-1 text-xs font-mono flex items-center gap-2">
-            <span
-              className={`size-1.5 rounded-full ${isForecast ? "bg-warning" : "bg-success"} animate-pulse`}
-            />
-            {isForecast ? "FORECAST" : "OBSERVED"} · {frameLabel(frame)}
           </div>
-        </div>
+        )}
 
-        {/* Timeline */}
-        <div className="mt-4 flex items-center gap-3">
-          <button
-            onClick={() => setPlaying((p) => !p)}
-            className="chip px-2.5 py-2 hover:bg-accent"
-            aria-label={playing ? "Pause" : "Play"}
-          >
-            {playing ? <Pause className="size-4" /> : <Play className="size-4" />}
-          </button>
-          <input
-            type="range"
-            min={0}
-            max={TOTAL_FRAMES - 1}
-            value={frame}
-            onChange={(e) => {
-              setPlaying(false);
-              setFrame(Number(e.target.value));
-            }}
-            className="flex-1 accent-primary"
-          />
-          <span className="font-mono text-xs text-muted-foreground w-20 text-right">
-            {frameLabel(frame)}
-          </span>
-        </div>
-        <div className="mt-1 flex justify-between text-[10px] font-mono text-muted-foreground">
-          <span>−2h</span>
-          <span className="text-success">NOW</span>
-          <span>+1h</span>
-          <span>+2h</span>
-          <span>+3h</span>
-          <span className="text-warning">+4h</span>
-        </div>
+        {!subscribed && (
+          <div className="mt-4 panel p-4 flex items-center justify-between gap-3 border-warning/30">
+            <div className="flex items-center gap-3">
+              <Lock className="size-5 text-warning" />
+              <div className="text-sm">
+                <div className="font-semibold">Unlock 30-min nowcast & lightning</div>
+                <div className="text-muted-foreground text-xs">
+                  Free tier shows past frames only. Upgrade for forward-looking radar.
+                </div>
+              </div>
+            </div>
+            <Link
+              to="/premium"
+              className="chip px-3 py-1.5 text-xs text-warning border-warning/40 hover:bg-warning/10"
+            >
+              {user ? "Upgrade" : "Sign in & upgrade"} →
+            </Link>
+          </div>
+        )}
 
         <p className="text-xs text-muted-foreground mt-3">
-          Layer: <span className="font-mono text-primary">{layer}</span> · Loop:{" "}
-          <span className="font-mono">2h past + 4h AI-forecast</span> · Premium users unlock
-          high-resolution satellite imagery & lightning density at 1-minute cadence.
+          Layer: <span className="font-mono text-primary">{layer}</span> · Source:{" "}
+          <span className="font-mono">RainViewer composite</span> · Frames refresh every
+          ~10 minutes from global radar networks.
         </p>
       </section>
 
