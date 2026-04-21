@@ -28,24 +28,25 @@ type Tier = {
 const tiers: Tier[] = [
   {
     name: "Pro",
-    priceCents: 499,
-    blurb: "Everything you need for daily planning.",
+    priceCents: 300,
+    blurb: "Unlock the full Lucast experience.",
+    highlight: true,
     features: [
-      "Animated radar loops",
-      "Hourly forecast (15-min precision)",
+      "Animated radar loops with 4-hour forecast",
+      "Minute-by-minute MinuteCast (2 hours out)",
       "Push notifications for severe alerts",
       "Ad-free experience",
+      "16-day extended forecast",
     ],
   },
   {
     name: "Pro+",
-    priceCents: 1499,
+    priceCents: 900,
     blurb: "For power users, hobby pilots, and storm chasers.",
-    highlight: true,
     features: [
       "Everything in Pro",
-      "16-day extended forecast",
       "Lightning strike feed (250 mi)",
+      "Hi-res satellite & infrared loops",
       "10,000 API calls / month",
       "Priority support",
     ],
