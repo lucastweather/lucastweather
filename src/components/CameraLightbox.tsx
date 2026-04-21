@@ -106,7 +106,7 @@ export default function CameraLightbox({
         )}
 
         {/* Top bar */}
-        <div className="absolute top-0 inset-x-0 flex items-start justify-between p-4 bg-gradient-to-b from-black/80 via-black/40 to-transparent pointer-events-none">
+        <div className="absolute top-0 inset-x-0 flex items-start justify-between p-3 sm:p-4 bg-gradient-to-b from-black/70 to-transparent pointer-events-none">
           <div className="pointer-events-auto">
             <div className="text-white text-lg font-semibold drop-shadow">{cam.name}</div>
             <div className="text-white/80 text-xs font-mono flex items-center gap-1 mt-0.5">
