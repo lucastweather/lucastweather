@@ -106,7 +106,7 @@ export default function CameraLightbox({
         )}
 
         {/* Top bar */}
-        <div className="absolute top-0 inset-x-0 flex items-start justify-between p-4 bg-gradient-to-b from-black/80 via-black/40 to-transparent pointer-events-none">
+        <div className="absolute top-0 inset-x-0 flex items-start justify-between p-3 sm:p-4 bg-gradient-to-b from-black/70 to-transparent pointer-events-none">
           <div className="pointer-events-auto">
             <div className="text-white text-lg font-semibold drop-shadow">{cam.name}</div>
             <div className="text-white/80 text-xs font-mono flex items-center gap-1 mt-0.5">
@@ -155,64 +155,56 @@ export default function CameraLightbox({
           </div>
         </div>
 
-        {/* Weather overlay */}
-        <div className="absolute bottom-0 inset-x-0 p-4 sm:p-6 bg-gradient-to-t from-black/85 via-black/55 to-transparent pointer-events-none">
+        {/* Weather overlay - compact card in corner so stream stays visible */}
+        <div className="absolute bottom-3 left-3 right-3 sm:bottom-4 sm:left-4 sm:right-auto sm:max-w-md pointer-events-none">
           {wx ? (
-            <div className="flex items-end justify-between flex-wrap gap-4 text-white">
-              <div className="flex items-center gap-4">
-                <div className="text-5xl sm:text-6xl drop-shadow-lg">
+            <div className="bg-black/60 backdrop-blur-md rounded-xl p-3 sm:p-4 border border-white/10 text-white">
+              <div className="flex items-center gap-3">
+                <div className="text-3xl sm:text-4xl drop-shadow">
                   {weatherIcon(wx.weatherCode, wx.isDay, wx.cloudCover)}
                 </div>
-                <div>
-                  <div className="text-4xl sm:text-5xl font-semibold leading-none drop-shadow">
+                <div className="flex-1 min-w-0">
+                  <div className="text-2xl sm:text-3xl font-semibold leading-none">
                     {Math.round(wx.temperature)}°F
                   </div>
-                  <div className="text-xs sm:text-sm text-white/85 mt-1 drop-shadow">
-                    {weatherLabel(wx.weatherCode, wx.cloudCover)} · Feels like{" "}
+                  <div className="text-[11px] sm:text-xs text-white/80 mt-1 truncate">
+                    {weatherLabel(wx.weatherCode, wx.cloudCover)} · Feels{" "}
                     {Math.round(wx.apparent)}°
                   </div>
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-2 sm:gap-3 text-xs">
-                <Pill icon={<Wind className="size-3.5" />} label="Wind">
+              <div className="grid grid-cols-3 gap-1.5 mt-2 text-[10px]">
+                <MiniPill icon={<Wind className="size-3" />}>
                   {Math.round(wx.windSpeed)} mph
-                </Pill>
-                <Pill icon={<Droplets className="size-3.5" />} label="Humidity">
-                  {wx.humidity}%
-                </Pill>
-                <Pill icon={<Thermometer className="size-3.5" />} label="Dew">
+                </MiniPill>
+                <MiniPill icon={<Droplets className="size-3" />}>{wx.humidity}%</MiniPill>
+                <MiniPill icon={<Thermometer className="size-3" />}>
                   {Math.round(wx.dewPoint)}°
-                </Pill>
+                </MiniPill>
               </div>
             </div>
           ) : (
-            <div className="text-white/70 text-xs font-mono">Loading conditions…</div>
+            <div className="bg-black/50 backdrop-blur rounded-lg px-3 py-2 text-white/70 text-xs font-mono inline-block">
+              Loading conditions…
+            </div>
           )}
-          <div className="mt-3 text-[10px] text-white/50 font-mono">
-            Press ESC or click outside to close
-          </div>
         </div>
       </div>
     </div>
   );
 }
 
-function Pill({
+function MiniPill({
   icon,
-  label,
   children,
 }: {
   icon: React.ReactNode;
-  label: string;
   children: React.ReactNode;
 }) {
   return (
-    <div className="bg-black/40 backdrop-blur rounded-lg px-2.5 py-1.5 border border-white/10">
-      <div className="text-white/60 flex items-center gap-1 text-[10px] uppercase tracking-wider">
-        {icon}
-        {label}
-      </div>
-      <div className="text-white font-mono text-sm mt-0.5">{children}</div>
+    <div className="bg-white/10 rounded-md px-1.5 py-1 flex items-center gap-1 text-white font-mono">
+      {icon}
+      <span className="truncate">{children}</span>
     </div>
   );
 }
