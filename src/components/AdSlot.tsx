@@ -32,7 +32,7 @@ export default function AdSlot() {
         </div>
         <div className="hidden sm:flex flex-col items-end shrink-0">
           <span className="chip px-3 py-1.5 text-xs font-medium text-primary border-primary/30">
-            Reserve →
+            Enroll →
           </span>
         </div>
       </div>
