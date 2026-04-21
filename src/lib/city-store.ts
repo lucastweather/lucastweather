@@ -16,11 +16,17 @@ const DEFAULT: GeoResult = {
 
 let listeners: Array<(c: GeoResult) => void> = [];
 let current: GeoResult = DEFAULT;
+let hydrated = false;
 
-if (typeof window !== "undefined") {
+function hydrateFromStorage() {
+  if (hydrated || typeof window === "undefined") return;
+  hydrated = true;
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) current = JSON.parse(raw);
+    if (raw) {
+      current = JSON.parse(raw);
+      listeners.forEach((l) => l(current));
+    }
   } catch {
     // ignore
   }
@@ -32,6 +38,7 @@ export function getCity() {
 
 export function setCity(c: GeoResult) {
   current = c;
+  hydrated = true;
   if (typeof window !== "undefined") {
     localStorage.setItem(KEY, JSON.stringify(c));
   }
@@ -39,10 +46,13 @@ export function setCity(c: GeoResult) {
 }
 
 export function useCity(): [GeoResult, (c: GeoResult) => void] {
-  const [city, setLocal] = useState<GeoResult>(current);
+  // Always start with DEFAULT to match SSR; hydrate from localStorage after mount.
+  const [city, setLocal] = useState<GeoResult>(DEFAULT);
   useEffect(() => {
     const l = (c: GeoResult) => setLocal(c);
     listeners.push(l);
+    hydrateFromStorage();
+    if (current !== DEFAULT) setLocal(current);
     return () => {
       listeners = listeners.filter((x) => x !== l);
     };
