@@ -1,4 +1,4 @@
-import { Sparkles, Sun, Umbrella, Wind, Snowflake, Trees, Coffee, Bike, Tent, Camera, Waves, BookOpen } from "lucide-react";
+import { Sparkles, Sun, Umbrella, Wind, Snowflake, Trees, Coffee, Bike, Tent, Camera, Waves, BookOpen, Droplets } from "lucide-react";
 import type { CurrentWeather, DailyForecast } from "@/lib/weather";
 
 type Recommendation = {
@@ -152,8 +152,6 @@ function recommend(current: CurrentWeather, today: DailyForecast | undefined): R
   return out.slice(0, 6);
 }
 
-// Re-export Droplets via lucide for the rare case it's referenced above
-import { Droplets } from "lucide-react";
 
 export default function DailyRecommendations({
   current,
