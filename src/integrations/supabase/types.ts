@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      favorites: {
+        Row: {
+          admin1: string | null
+          country: string | null
+          country_code: string | null
+          created_at: string
+          id: string
+          kind: string
+          latitude: number | null
+          longitude: number | null
+          name: string
+          ref_id: string
+          subtitle: string | null
+          timezone: string | null
+          user_id: string
+        }
+        Insert: {
+          admin1?: string | null
+          country?: string | null
+          country_code?: string | null
+          created_at?: string
+          id?: string
+          kind: string
+          latitude?: number | null
+          longitude?: number | null
+          name: string
+          ref_id: string
+          subtitle?: string | null
+          timezone?: string | null
+          user_id: string
+        }
+        Update: {
+          admin1?: string | null
+          country?: string | null
+          country_code?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          latitude?: number | null
+          longitude?: number | null
+          name?: string
+          ref_id?: string
+          subtitle?: string | null
+          timezone?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       subscribers: {
         Row: {
           created_at: string

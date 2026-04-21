@@ -17,6 +17,7 @@ import { Lock, Crown } from "lucide-react";
 import PageShell from "@/components/PageShell";
 import AdSlot from "@/components/AdSlot";
 import WeatherCameras from "@/components/WeatherCameras";
+import FavoriteCities from "@/components/FavoriteCities";
 import { useCity } from "@/lib/city-store";
 import { useSubscription } from "@/lib/auth-store";
 import {
@@ -142,6 +143,8 @@ function WeatherPage() {
         </div>
       </section>
 
+      {/* Favorite Cities (premium) */}
+      <FavoriteCities />
       {/* Sponsored ad — hidden for premium subscribers */}
       {!subscribed && <AdSlot />}
 
