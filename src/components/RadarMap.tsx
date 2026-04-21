@@ -89,24 +89,21 @@ export default function RadarMap({ lat, lon, showForecast = false, onNowcast }: 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lat, lon]);
 
-  // Fetch radar frame index — always include nowcast frames in playback so
-  // every viewer sees the 30-minute outlook (premium-only badge stays in UI).
+  // Fetch radar frame index. Premium users get nowcast frames; free users get
+  // observed radar only.
   useEffect(() => {
     fetch(RAINVIEWER_API)
       .then((r) => r.json() as Promise<ApiResp>)
       .then((d) => {
         const past = d.radar.past ?? [];
         const nowcast = d.radar.nowcast ?? [];
-        const all = [...past, ...nowcast];
+        const all = showForecast ? [...past, ...nowcast] : past;
         setHost(d.host);
         setFrames(all);
         setPastCount(past.length);
-        setIdx(Math.max(0, past.length - 1));
+        setIdx(Math.max(0, Math.min(past.length - 1, all.length - 1)));
 
-        // Probe the latest nowcast frame at the user's lat/lon to see if rain
-        // is expected nearby. We sample the radar tile pixel for the user's
-        // tile coordinate. This lets us drive MinuteCast from radar truth.
-        if (nowcast.length > 0 && onNowcast) {
+        if (showForecast && nowcast.length > 0 && onNowcast) {
           probeRain(d.host, nowcast[nowcast.length - 1].path, lat, lon)
             .then((alpha) => {
               onNowcast(alpha, alpha > 0.05);
@@ -118,6 +115,7 @@ export default function RadarMap({ lat, lon, showForecast = false, onNowcast }: 
       })
       .catch(() => {
         setFrames([]);
+        onNowcast?.(0, false);
       });
   }, [showForecast, lat, lon, onNowcast]);
 
