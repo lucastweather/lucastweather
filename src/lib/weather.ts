@@ -74,7 +74,7 @@ export async function fetchWeather(lat: number, lon: number) {
     precipitation_unit: "inch",
     pressure_unit: "inHg",
     timezone: "auto",
-    forecast_days: "7",
+    forecast_days: "16",
     forecast_hours: "24",
     forecast_minutely_15: "16",
     models: "best_match",
