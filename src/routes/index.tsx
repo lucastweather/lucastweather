@@ -1,7 +1,20 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Wind, Droplets, Gauge, Compass, Thermometer, Sun, ChevronDown, AlertCircle } from "lucide-react";
+import {
+  Wind,
+  Droplets,
+  Gauge,
+  Compass,
+  Thermometer,
+  Sun,
+  ChevronDown,
+  AlertCircle,
+  Sparkles,
+  Clock,
+} from "lucide-react";
 import PageShell from "@/components/PageShell";
+import AdSlot from "@/components/AdSlot";
+import WeatherCameras from "@/components/WeatherCameras";
 import { useCity } from "@/lib/city-store";
 import {
   fetchWeather,
@@ -10,6 +23,7 @@ import {
   weatherLabel,
   type CurrentWeather,
   type DailyForecast,
+  type HourlyPoint,
   type MinutelyPoint,
   type Earthquake,
 } from "@/lib/weather";
@@ -17,11 +31,11 @@ import {
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Lucast Weather — Hyperlocal Forecasts, Radar & Alerts" },
+      { title: "Lucast Weather — AI Hyperlocal Forecasts, Radar & Alerts" },
       {
         name: "description",
         content:
-          "Real-time weather, 7-day forecast, MinuteCast precipitation, and live earthquake tracker for any city worldwide.",
+          "AI-powered hyper-accurate weather, free hourly forecast, MinuteCast, live radar with 4-hour outlook, nearby weather cameras, and earthquake tracker.",
       },
     ],
   }),
@@ -33,6 +47,7 @@ function WeatherPage() {
   const [data, setData] = useState<{
     current: CurrentWeather;
     daily: DailyForecast[];
+    hourly: HourlyPoint[];
     minutely: MinutelyPoint[];
   } | null>(null);
   const [quakes, setQuakes] = useState<Earthquake[]>([]);
@@ -72,13 +87,20 @@ function WeatherPage() {
 
       {/* Current conditions */}
       <section className="panel p-6 lg:p-8">
-        <div className="font-mono text-xs text-muted-foreground tracking-wider">
-          {city.name}
-          {city.admin1 ? `, ${city.admin1}` : ""} · {city.country}
+        <div className="font-mono text-xs text-muted-foreground tracking-wider flex items-center gap-2">
+          <span>
+            {city.name}
+            {city.admin1 ? `, ${city.admin1}` : ""} · {city.country}
+          </span>
+          <span className="chip px-1.5 py-0.5 text-[10px] text-primary border-primary/30 flex items-center gap-1">
+            <Sparkles className="size-3" /> AI Ensemble
+          </span>
         </div>
         <div className="mt-3 flex items-center gap-6 flex-wrap">
           <div className="text-7xl leading-none">
-            {data ? weatherIcon(data.current.weatherCode, data.current.isDay) : "⛅"}
+            {data
+              ? weatherIcon(data.current.weatherCode, data.current.isDay, data.current.cloudCover)
+              : "⛅"}
           </div>
           <div>
             <div className="text-6xl font-semibold tracking-tight">
@@ -88,6 +110,7 @@ function WeatherPage() {
               {data
                 ? `Feels like ${Math.round(data.current.apparent)}°F · ${weatherLabel(
                     data.current.weatherCode,
+                    data.current.cloudCover,
                   )}`
                 : loading
                   ? "Loading…"
@@ -99,10 +122,55 @@ function WeatherPage() {
         <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           <Metric icon={<Wind className="size-4" />} label="Wind" value={data ? `${Math.round(data.current.windSpeed)} mph` : "—"} />
           <Metric icon={<Droplets className="size-4" />} label="Humidity" value={data ? `${data.current.humidity}%` : "—"} />
-          <Metric icon={<Gauge className="size-4" />} label="Pressure" value={data ? `${data.current.pressure.toFixed(1)} in` : "—"} />
+          <Metric icon={<Gauge className="size-4" />} label="Pressure" value={data ? `${data.current.pressure.toFixed(2)} in` : "—"} />
           <Metric icon={<Compass className="size-4" />} label="Wind Dir" value={data ? `${data.current.windDirection}°` : "—"} />
           <Metric icon={<Thermometer className="size-4" />} label="Dew Point" value={data ? `${Math.round(data.current.dewPoint)}°F` : "—"} />
           <Metric icon={<Sun className="size-4" />} label="UV Index" value={data ? `${data.current.uvIndex}` : "—"} />
+        </div>
+      </section>
+
+      {/* Sponsored ad */}
+      <AdSlot />
+
+      {/* Nearby weather cameras */}
+      <WeatherCameras cityName={city.name} lat={city.latitude} lon={city.longitude} />
+
+      {/* Hourly forecast — FREE */}
+      <section className="panel p-6">
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+          <h2 className="text-lg font-semibold flex items-center gap-2">
+            <Clock className="size-5 text-primary" /> Hourly Forecast
+            <span className="chip px-2 py-0.5 text-[10px] text-success border-success/30">
+              Free · Next 24h
+            </span>
+          </h2>
+        </div>
+        <div className="overflow-x-auto -mx-2 px-2">
+          <div className="flex gap-2 min-w-max pb-2">
+            {(data?.hourly ?? []).slice(0, 24).map((h, i) => {
+              const d = new Date(h.time);
+              const hr = d.getHours();
+              const label =
+                i === 0
+                  ? "Now"
+                  : `${hr === 0 ? 12 : hr > 12 ? hr - 12 : hr}${hr < 12 ? "a" : "p"}`;
+              const isDay = hr >= 6 && hr < 19;
+              return (
+                <div
+                  key={h.time}
+                  className="chip flex flex-col items-center gap-1 px-3 py-3 min-w-[64px]"
+                >
+                  <div className="text-[11px] font-mono text-muted-foreground">{label}</div>
+                  <div className="text-2xl">{weatherIcon(h.weatherCode, isDay)}</div>
+                  <div className="text-sm font-semibold">{Math.round(h.temp)}°</div>
+                  <div className="text-[10px] font-mono text-info">{h.precipProb}%</div>
+                </div>
+              );
+            })}
+            {!data && (
+              <div className="text-sm text-muted-foreground py-4">Loading hourly…</div>
+            )}
+          </div>
         </div>
       </section>
 
@@ -117,38 +185,44 @@ function WeatherPage() {
         </ul>
       </section>
 
-      {/* MinuteCast */}
+      {/* MinuteCast — minute by minute */}
       <section className="panel p-6">
         <h2 className="text-lg font-semibold mb-1 flex items-center gap-2">
           <span>🌧️</span> MinuteCast
+          <span className="chip px-2 py-0.5 text-[10px] text-primary border-primary/30">
+            Minute-by-minute · 60 min
+          </span>
         </h2>
         <p className="text-sm text-muted-foreground mb-4">
-          {data && data.minutely.every((m) => m.precip === 0)
-            ? "No precipitation expected in the next 2 hours"
-            : "Precipitation expected"}
+          {(() => {
+            if (!data) return "Loading minute-by-minute precipitation…";
+            const next = data.minutely;
+            if (next.length === 0) return "Minute-by-minute data unavailable for this region.";
+            const total = next.reduce((s, m) => s + m.precip, 0);
+            if (total < 0.001) return "No precipitation expected in the next 60 minutes.";
+            const startIdx = next.findIndex((m) => m.precip > 0.001);
+            const endIdx = next.length - 1 - [...next].reverse().findIndex((m) => m.precip > 0.001);
+            return `Precipitation from minute ${startIdx} to ${endIdx} · ${total.toFixed(2)}" total`;
+          })()}
         </p>
-        <div className="flex items-end gap-1 h-20">
-          {(data?.minutely ?? []).map((m, i) => {
-            const h = Math.min(100, m.precip * 200);
-            return (
-              <div
-                key={i}
-                className="flex-1 rounded-t bg-primary/40"
-                style={{ height: `${Math.max(4, h)}%` }}
-                title={`${m.precip.toFixed(2)}"`}
-              />
-            );
-          })}
-        </div>
-        <div className="mt-2 flex justify-between text-[10px] font-mono text-muted-foreground">
-          {[0, 15, 30, 45, 60, 75, 90, 105].map((m) => (
-            <span key={m}>{m}m</span>
-          ))}
-        </div>
+        <MinuteCastChart minutely={data?.minutely ?? []} />
         <div className="mt-3 flex gap-3 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1"><span className="size-2 rounded-sm bg-primary/40" />Light</span>
-          <span className="flex items-center gap-1"><span className="size-2 rounded-sm bg-primary/70" />Moderate</span>
-          <span className="flex items-center gap-1"><span className="size-2 rounded-sm bg-primary" />Heavy</span>
+          <span className="flex items-center gap-1">
+            <span className="size-2 rounded-sm bg-primary/30" />
+            Trace
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="size-2 rounded-sm bg-primary/60" />
+            Light
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="size-2 rounded-sm bg-primary" />
+            Moderate
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="size-2 rounded-sm bg-warning" />
+            Heavy
+          </span>
         </div>
       </section>
 
@@ -157,7 +231,9 @@ function WeatherPage() {
         <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
           <h2 className="text-lg font-semibold flex items-center gap-2">
             <span>🌍</span> Earthquake Tracker
-            <span className="text-[10px] uppercase tracking-wider chip px-2 py-0.5 text-success">USGS Live</span>
+            <span className="text-[10px] uppercase tracking-wider chip px-2 py-0.5 text-success">
+              USGS Live
+            </span>
           </h2>
           <div className="flex gap-1">
             {[6, 5, 4, 3, 0].map((m) => (
@@ -211,6 +287,51 @@ function WeatherPage() {
         </ul>
       </section>
     </PageShell>
+  );
+}
+
+function MinuteCastChart({ minutely }: { minutely: MinutelyPoint[] }) {
+  // Render 60 thin bars (one per minute). Even with no precipitation we show
+  // a faint baseline so the chart never looks empty.
+  const bars = minutely.length > 0 ? minutely : Array.from({ length: 60 }).map((_, i) => ({
+    time: new Date(Date.now() + i * 60_000).toISOString(),
+    precip: 0,
+    precipProb: 0,
+  }));
+  const max = Math.max(0.02, ...bars.map((b) => b.precip));
+
+  return (
+    <>
+      <div className="flex items-end gap-[2px] h-24 bg-surface-2/40 rounded-lg px-2 py-2 border border-border">
+        {bars.map((m, i) => {
+          const ratio = m.precip / max;
+          const heightPct = m.precip > 0 ? Math.max(8, ratio * 100) : 4;
+          const color =
+            m.precip > 0.05
+              ? "bg-warning"
+              : m.precip > 0.02
+                ? "bg-primary"
+                : m.precip > 0.005
+                  ? "bg-primary/60"
+                  : m.precipProb > 30
+                    ? "bg-primary/20"
+                    : "bg-muted-foreground/15";
+          return (
+            <div
+              key={i}
+              className={`flex-1 rounded-sm ${color} transition-all`}
+              style={{ height: `${heightPct}%` }}
+              title={`+${i}min · ${m.precip.toFixed(3)}" · ${Math.round(m.precipProb)}%`}
+            />
+          );
+        })}
+      </div>
+      <div className="mt-2 flex justify-between text-[10px] font-mono text-muted-foreground">
+        {[0, 10, 20, 30, 40, 50, 60].map((m) => (
+          <span key={m}>{m === 0 ? "Now" : `+${m}m`}</span>
+        ))}
+      </div>
+    </>
   );
 }
 
