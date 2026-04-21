@@ -143,6 +143,8 @@ function WeatherPage() {
         </div>
       </section>
 
+      {/* Favorite Cities (premium) */}
+      <FavoriteCities />
       {/* Sponsored ad — hidden for premium subscribers */}
       {!subscribed && <AdSlot />}
 
