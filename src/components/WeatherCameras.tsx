@@ -446,6 +446,89 @@ export default function WeatherCameras({
   );
 }
 
+function TheaterView({
+  cams,
+  activeCamId,
+  onSelectThumb,
+  onExpand,
+}: {
+  cams: Cam[];
+  activeCamId: string | undefined;
+  onSelectThumb: (c: Cam) => void;
+  onExpand: (c: Cam) => void;
+}) {
+  const featured = cams.find((c) => c.id === activeCamId) ?? cams[0];
+  if (!featured) {
+    return (
+      <div className="text-center py-12 text-muted-foreground text-sm">
+        No cameras available.
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-3">
+      <div className="aspect-video rounded-xl overflow-hidden border border-border bg-black relative group">
+        {featured.source.kind === "image" ? (
+          <RefreshingImage url={featured.source.url} alt={featured.name} />
+        ) : (
+          <iframe
+            src={srcUrl(featured)}
+            title={featured.name}
+            className="w-full h-full"
+            allow="autoplay; encrypted-media; picture-in-picture"
+            allowFullScreen
+          />
+        )}
+        <div className="absolute top-3 left-3 chip px-2 py-1 text-xs font-mono flex items-center gap-1.5">
+          <span className="size-1.5 rounded-full bg-danger animate-pulse" /> LIVE
+        </div>
+        <div className="absolute top-3 right-3 flex items-center gap-2">
+          <button
+            onClick={() => onExpand(featured)}
+            className="chip px-2 py-1 text-xs hover:bg-accent flex items-center gap-1"
+          >
+            <Maximize2 className="size-3" /> Fullscreen
+          </button>
+        </div>
+        <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between">
+          <div className="bg-black/60 backdrop-blur rounded-lg px-3 py-1.5">
+            <div className="text-white text-sm font-medium">{featured.name}</div>
+            <div className="text-white/70 text-[11px] font-mono">{featured.region}</div>
+          </div>
+        </div>
+      </div>
+      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
+        {cams.slice(0, 12).map((c) => (
+          <button
+            key={c.id}
+            onClick={() => onSelectThumb(c)}
+            className={`aspect-video rounded-lg overflow-hidden border-2 relative group ${
+              c.id === featured.id
+                ? "border-primary"
+                : "border-border hover:border-primary/50"
+            }`}
+            title={c.name}
+          >
+            <img
+              src={thumbUrl(c)}
+              alt={c.name}
+              className="w-full h-full object-cover"
+              loading="lazy"
+              onError={(e) => {
+                (e.currentTarget as HTMLImageElement).src =
+                  "https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?w=300&q=60";
+              }}
+            />
+            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-1">
+              <div className="text-white text-[10px] font-medium truncate">{c.name}</div>
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function RefreshingImage({ url, alt }: { url: string; alt: string }) {
   const [bust, setBust] = useState(() => Math.floor(Date.now() / 60000));
   useEffect(() => {
