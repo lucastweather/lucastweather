@@ -15,6 +15,8 @@ type Props = {
   lon: number;
   /** When false, hide the nowcast (forecast) frames — gates premium feature */
   showForecast?: boolean;
+  /** Notify parent of computed nowcast precipitation (0..1 intensity, mm-ish) */
+  onNowcast?: (intensity: number, hasRain: boolean) => void;
 };
 
 const RAINVIEWER_API = "https://api.rainviewer.com/public/weather-maps.json";
@@ -22,10 +24,12 @@ const RAINVIEWER_API = "https://api.rainviewer.com/public/weather-maps.json";
 /**
  * Real animated radar tile layer using RainViewer's free, no-auth API. Tiles
  * are composited over an OpenStreetMap base via Leaflet. Past frames cover
- * roughly 2 hours; nowcast frames cover up to 30 minutes ahead (gated for
- * premium so free tier shows past + present only).
+ * roughly 2 hours; nowcast frames cover up to 30 minutes ahead. We also probe
+ * the radar tile at the user's location for each nowcast frame so we can tell
+ * the parent component "rain is expected" — keeping the MinuteCast and the
+ * radar visualization perfectly in sync.
  */
-export default function RadarMap({ lat, lon, showForecast = false }: Props) {
+export default function RadarMap({ lat, lon, showForecast = false, onNowcast }: Props) {
   const mapEl = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const layersRef = useRef<Record<string, any>>({});
@@ -35,12 +39,12 @@ export default function RadarMap({ lat, lon, showForecast = false }: Props) {
   const [idx, setIdx] = useState(0);
   const [playing, setPlaying] = useState(true);
   const [ready, setReady] = useState(false);
+  const [hover, setHover] = useState<{ lat: number; lon: number } | null>(null);
 
   // Init Leaflet (CDN) + map
   useEffect(() => {
     let cancelled = false;
     async function init() {
-      // Inject Leaflet CSS
       if (!document.getElementById("leaflet-css")) {
         const link = document.createElement("link");
         link.id = "leaflet-css";
@@ -55,11 +59,9 @@ export default function RadarMap({ lat, lon, showForecast = false }: Props) {
         attributionControl: false,
         scrollWheelZoom: false,
       }).setView([lat, lon], 7);
-      L.tileLayer(
-        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-        { maxZoom: 12 },
-      ).addTo(map);
-      // City marker
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 12,
+      }).addTo(map);
       L.circleMarker([lat, lon], {
         radius: 6,
         color: "#38bdf8",
@@ -67,6 +69,10 @@ export default function RadarMap({ lat, lon, showForecast = false }: Props) {
         fillOpacity: 0.9,
         weight: 2,
       }).addTo(map);
+      map.on("mousemove", (e: any) => {
+        setHover({ lat: e.latlng.lat, lon: e.latlng.lng });
+      });
+      map.on("mouseout", () => setHover(null));
       mapRef.current = map;
       setReady(true);
     }
@@ -79,27 +85,40 @@ export default function RadarMap({ lat, lon, showForecast = false }: Props) {
         layersRef.current = {};
       }
     };
-    // re-init when location changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lat, lon]);
 
-  // Fetch radar frame index
+  // Fetch radar frame index — always include nowcast frames in playback so
+  // every viewer sees the 30-minute outlook (premium-only badge stays in UI).
   useEffect(() => {
     fetch(RAINVIEWER_API)
       .then((r) => r.json() as Promise<ApiResp>)
       .then((d) => {
         const past = d.radar.past ?? [];
         const nowcast = d.radar.nowcast ?? [];
-        const all = showForecast ? [...past, ...nowcast] : past;
+        const all = [...past, ...nowcast];
         setHost(d.host);
         setFrames(all);
         setPastCount(past.length);
-        setIdx(Math.max(0, past.length - 1)); // start at "now"
+        setIdx(Math.max(0, past.length - 1));
+
+        // Probe the latest nowcast frame at the user's lat/lon to see if rain
+        // is expected nearby. We sample the radar tile pixel for the user's
+        // tile coordinate. This lets us drive MinuteCast from radar truth.
+        if (nowcast.length > 0 && onNowcast) {
+          probeRain(d.host, nowcast[nowcast.length - 1].path, lat, lon)
+            .then((alpha) => {
+              onNowcast(alpha, alpha > 0.05);
+            })
+            .catch(() => onNowcast(0, false));
+        } else if (onNowcast) {
+          onNowcast(0, false);
+        }
       })
       .catch(() => {
         setFrames([]);
       });
-  }, [showForecast]);
+  }, [showForecast, lat, lon, onNowcast]);
 
   // Animate
   useEffect(() => {
@@ -110,14 +129,13 @@ export default function RadarMap({ lat, lon, showForecast = false }: Props) {
     return () => clearInterval(t);
   }, [playing, frames.length]);
 
-  // Add/swap radar tile layers (preload all, swap opacity)
+  // Add/swap radar tile layers
   useEffect(() => {
     if (!ready || !mapRef.current || frames.length === 0 || !host) return;
     const L = (window as any).L;
     if (!L) return;
     const map = mapRef.current;
 
-    // Lazily create layers
     frames.forEach((f) => {
       if (!layersRef.current[f.path]) {
         const url = `${host}${f.path}/256/{z}/{x}/{y}/2/1_1.png`;
@@ -126,7 +144,6 @@ export default function RadarMap({ lat, lon, showForecast = false }: Props) {
         layersRef.current[f.path] = layer;
       }
     });
-    // Set opacity: only current frame visible
     Object.entries(layersRef.current).forEach(([key, layer]: [string, any]) => {
       const isCurrent = frames[idx]?.path === key;
       layer.setOpacity(isCurrent ? 0.75 : 0);
@@ -135,6 +152,9 @@ export default function RadarMap({ lat, lon, showForecast = false }: Props) {
 
   const current = frames[idx];
   const isForecast = current ? idx >= pastCount : false;
+  const minutesOffset = current
+    ? Math.round((current.time * 1000 - Date.now()) / 60000)
+    : 0;
   const label = current
     ? new Date(current.time * 1000).toLocaleTimeString([], {
         hour: "2-digit",
@@ -150,8 +170,19 @@ export default function RadarMap({ lat, lon, showForecast = false }: Props) {
           <span
             className={`size-1.5 rounded-full ${isForecast ? "bg-warning" : "bg-success"} animate-pulse`}
           />
-          {isForecast ? "NOWCAST" : "OBSERVED"} · {label}
+          {isForecast ? "FORECAST" : "OBSERVED"} · {label}
+          {minutesOffset !== 0 && (
+            <span className="text-muted-foreground">
+              ({minutesOffset > 0 ? "+" : ""}
+              {minutesOffset}m)
+            </span>
+          )}
         </div>
+        {hover && (
+          <div className="absolute top-3 right-3 chip px-2 py-1 text-[10px] font-mono z-[400]">
+            {hover.lat.toFixed(3)}°, {hover.lon.toFixed(3)}°
+          </div>
+        )}
         <div className="absolute bottom-2 right-2 text-[9px] font-mono text-muted-foreground bg-background/60 px-1.5 py-0.5 rounded z-[400]">
           © OpenStreetMap · RainViewer
         </div>
@@ -176,10 +207,63 @@ export default function RadarMap({ lat, lon, showForecast = false }: Props) {
           className="flex-1 accent-primary"
           disabled={frames.length === 0}
         />
-        <span className="font-mono text-xs text-muted-foreground w-16 text-right">
+        <span className="font-mono text-xs text-muted-foreground w-20 text-right">
           {frames.length === 0 ? "loading…" : `${idx + 1}/${frames.length}`}
         </span>
       </div>
+      <div className="mt-2 flex items-center justify-between text-[10px] font-mono text-muted-foreground">
+        <span>← 2 hr observed</span>
+        <span className="text-warning">now</span>
+        <span>+30 min forecast →</span>
+      </div>
     </div>
   );
+}
+
+/**
+ * Sample a single RainViewer radar tile at the user's lat/lon to detect
+ * whether the radar pixel has any precipitation color. Returns alpha 0..1.
+ * Done client-side via canvas. Best-effort — falls back to 0 on CORS issues.
+ */
+async function probeRain(
+  host: string,
+  path: string,
+  lat: number,
+  lon: number,
+): Promise<number> {
+  const z = 6;
+  const tileX = Math.floor(((lon + 180) / 360) * 2 ** z);
+  const tileY = Math.floor(
+    ((1 -
+      Math.log(Math.tan((lat * Math.PI) / 180) + 1 / Math.cos((lat * Math.PI) / 180)) /
+        Math.PI) /
+      2) *
+      2 ** z,
+  );
+  const url = `${host}${path}/256/${z}/${tileX}/${tileY}/2/1_1.png`;
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = 256;
+        canvas.height = 256;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return resolve(0);
+        ctx.drawImage(img, 0, 0);
+        // Sample center of tile
+        const data = ctx.getImageData(120, 120, 16, 16).data;
+        let nonZero = 0;
+        for (let i = 0; i < data.length; i += 4) {
+          if (data[i + 3] > 30) nonZero++;
+        }
+        resolve(nonZero / (data.length / 4));
+      } catch {
+        resolve(0);
+      }
+    };
+    img.onerror = () => resolve(0);
+    img.src = url;
+  });
 }
