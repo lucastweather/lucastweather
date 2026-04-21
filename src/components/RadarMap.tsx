@@ -38,6 +38,7 @@ export default function RadarMap({ lat, lon, showForecast = false, onNowcast }: 
   const [host, setHost] = useState<string>("");
   const [idx, setIdx] = useState(0);
   const [playing, setPlaying] = useState(true);
+  const [speed, setSpeed] = useState(1200); // ms per frame; user-adjustable
   const [ready, setReady] = useState(false);
   const [hover, setHover] = useState<{ lat: number; lon: number } | null>(null);
 
@@ -120,14 +121,17 @@ export default function RadarMap({ lat, lon, showForecast = false, onNowcast }: 
       });
   }, [showForecast, lat, lon, onNowcast]);
 
-  // Animate
+  // Animate. Hold the latest frame longer so users can see "now" before loop.
   useEffect(() => {
     if (!playing || frames.length === 0) return;
     const t = setInterval(() => {
-      setIdx((i) => (i + 1) % frames.length);
-    }, 600);
+      setIdx((i) => {
+        const next = (i + 1) % frames.length;
+        return next;
+      });
+    }, speed);
     return () => clearInterval(t);
-  }, [playing, frames.length]);
+  }, [playing, frames.length, speed]);
 
   // Add/swap radar tile layers
   useEffect(() => {
@@ -187,7 +191,7 @@ export default function RadarMap({ lat, lon, showForecast = false, onNowcast }: 
           © OpenStreetMap · RainViewer
         </div>
       </div>
-      <div className="mt-3 flex items-center gap-3">
+      <div className="mt-3 flex items-center gap-3 flex-wrap">
         <button
           onClick={() => setPlaying((p) => !p)}
           className="chip px-2.5 py-2 hover:bg-accent"
@@ -204,12 +208,29 @@ export default function RadarMap({ lat, lon, showForecast = false, onNowcast }: 
             setPlaying(false);
             setIdx(Number(e.target.value));
           }}
-          className="flex-1 accent-primary"
+          className="flex-1 min-w-[120px] accent-primary"
           disabled={frames.length === 0}
         />
-        <span className="font-mono text-xs text-muted-foreground w-20 text-right">
+        <span className="font-mono text-xs text-muted-foreground w-16 text-right">
           {frames.length === 0 ? "loading…" : `${idx + 1}/${frames.length}`}
         </span>
+        <div className="chip p-0.5 flex text-[10px] font-mono">
+          {[
+            { label: "0.5×", v: 2400 },
+            { label: "1×", v: 1200 },
+            { label: "2×", v: 600 },
+          ].map((s) => (
+            <button
+              key={s.v}
+              onClick={() => setSpeed(s.v)}
+              className={`px-1.5 py-1 rounded ${
+                speed === s.v ? "bg-primary/20 text-primary" : "text-muted-foreground"
+              }`}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
       </div>
       <div className="mt-2 flex items-center justify-between text-[10px] font-mono text-muted-foreground">
         <span>← 2 hr observed</span>

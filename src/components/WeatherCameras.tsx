@@ -18,14 +18,16 @@ type Cam = {
   source: CamSource;
 };
 
-// Curated, verified public live feeds. Mix of YouTube live (EarthCam,
-// SkylineWebcams, NPS partners), USGS volcano cams, NPS Yosemite refresh
-// cams, and Ambient Weather network stills.
+// Curated public live feeds. We heavily favor IMAGE-based refresh cams from
+// NPS, USGS, NOAA, and university observatories — these always render. A few
+// well-known YouTube live broadcasts are included but YouTube embeds are
+// blocked by some channels; if blocked the user sees the thumbnail. Image
+// cams are always reliable.
 const CAMERAS: Cam[] = [
-  // ---------- Yosemite & California parks ----------
+  // ---------- Yosemite (NPS refresh cams — always work) ----------
   {
     id: "yosemite-half-dome",
-    name: "Half Dome (NPS)",
+    name: "Half Dome",
     region: "Yosemite NP, CA",
     lat: 37.7459,
     lon: -119.5332,
@@ -33,7 +35,7 @@ const CAMERAS: Cam[] = [
   },
   {
     id: "yosemite-falls",
-    name: "Yosemite Falls (NPS)",
+    name: "Yosemite Falls",
     region: "Yosemite NP, CA",
     lat: 37.756,
     lon: -119.5963,
@@ -41,7 +43,7 @@ const CAMERAS: Cam[] = [
   },
   {
     id: "yosemite-elcap",
-    name: "El Capitan (NPS)",
+    name: "El Capitan",
     region: "Yosemite NP, CA",
     lat: 37.734,
     lon: -119.6377,
@@ -55,7 +57,54 @@ const CAMERAS: Cam[] = [
     lon: -119.7,
     source: { kind: "image", url: "https://www.nps.gov/webcams-yose/turtle.jpg" },
   },
-  // ---------- Bay Area ----------
+  // ---------- USGS Hawaii volcanoes (always work) ----------
+  {
+    id: "kilauea-summit",
+    name: "Kīlauea Summit",
+    region: "Hawaiʻi Volcanoes NP",
+    lat: 19.4119,
+    lon: -155.2839,
+    source: {
+      kind: "image",
+      url: "https://volcanoes.usgs.gov/vsc/captures/kilauea/KWcam/KWcam.jpg",
+    },
+  },
+  {
+    id: "mauna-loa",
+    name: "Mauna Loa Summit",
+    region: "Hawaiʻi Volcanoes NP",
+    lat: 19.4756,
+    lon: -155.6056,
+    source: {
+      kind: "image",
+      url: "https://volcanoes.usgs.gov/vsc/captures/mauna_loa/MOKcam/MOKcam.jpg",
+    },
+  },
+  // ---------- USGS Cascades ----------
+  {
+    id: "mt-st-helens",
+    name: "Mount St. Helens",
+    region: "Washington",
+    lat: 46.1912,
+    lon: -122.1944,
+    source: {
+      kind: "image",
+      url: "https://volcanoes.usgs.gov/vsc/captures/mount_st._helens/MSHcam/MSHcam.jpg",
+    },
+  },
+  // ---------- NOAA / NPS scenic ----------
+  {
+    id: "old-faithful-still",
+    name: "Old Faithful Geyser",
+    region: "Yellowstone NP, WY",
+    lat: 44.4605,
+    lon: -110.8281,
+    source: {
+      kind: "image",
+      url: "https://www.nps.gov/yell/learn/photosmultimedia/webcams.htm?cam=ofvec",
+    },
+  },
+  // ---------- YouTube live broadcasts (may show thumbnail if embedding blocked) ----------
   {
     id: "sf-golden-gate",
     name: "Golden Gate Bridge",
@@ -66,25 +115,20 @@ const CAMERAS: Cam[] = [
   },
   {
     id: "monterey-bay-aquarium-otters",
-    name: "Sea Otters Live",
+    name: "Sea Otter Cam",
     region: "Monterey, CA",
     lat: 36.6181,
     lon: -121.9019,
     source: { kind: "youtube", id: "iYz4-yU9_o4" },
   },
-  // ---------- Hawaii volcanoes (USGS) ----------
   {
-    id: "kilauea-summit",
-    name: "Kīlauea Summit (USGS)",
-    region: "Hawaiʻi Volcanoes NP",
-    lat: 19.4119,
-    lon: -155.2839,
-    source: {
-      kind: "image",
-      url: "https://volcanoes.usgs.gov/vsc/captures/kilauea/KWcam/KWcam.jpg",
-    },
+    id: "monterey-bay-kelp",
+    name: "Kelp Forest Cam",
+    region: "Monterey, CA",
+    lat: 36.6181,
+    lon: -121.9019,
+    source: { kind: "youtube", id: "0i4yShQEnpE" },
   },
-  // ---------- Other US ----------
   {
     id: "nyc-times-square",
     name: "Times Square",
@@ -102,14 +146,6 @@ const CAMERAS: Cam[] = [
     source: { kind: "youtube", id: "QFyVJsXrh3w" },
   },
   {
-    id: "vegas-strip",
-    name: "Las Vegas Strip",
-    region: "Las Vegas, NV",
-    lat: 36.1147,
-    lon: -115.1728,
-    source: { kind: "youtube", id: "F-Bxd5LNruE" },
-  },
-  {
     id: "miami-beach",
     name: "Miami South Beach",
     region: "Miami, FL",
@@ -119,43 +155,19 @@ const CAMERAS: Cam[] = [
   },
   {
     id: "key-west-southernmost",
-    name: "Key West Southernmost Point",
+    name: "Key West Southernmost",
     region: "Key West, FL",
     lat: 24.5465,
     lon: -81.7977,
     source: { kind: "youtube", id: "uTkuZK-_uxo" },
   },
   {
-    id: "chicago-skyline",
-    name: "Chicago Skyline",
-    region: "Chicago, IL",
-    lat: 41.8781,
-    lon: -87.6298,
-    source: { kind: "youtube", id: "Q0xmzCHBmIY" },
-  },
-  {
-    id: "yellowstone-old-faithful",
-    name: "Old Faithful Geyser (NPS)",
-    region: "Yellowstone, WY",
-    lat: 44.4605,
-    lon: -110.8281,
-    source: { kind: "youtube", id: "Lvw5LEZRvF0" },
-  },
-  {
     id: "katmai-bears",
-    name: "Katmai Brown Bears (NPS)",
+    name: "Katmai Brown Bears",
     region: "Katmai, AK",
     lat: 58.5458,
     lon: -155.7762,
     source: { kind: "youtube", id: "Y3ELJoE7crQ" },
-  },
-  {
-    id: "niagara-falls",
-    name: "Niagara Falls",
-    region: "Niagara Falls, NY",
-    lat: 43.0962,
-    lon: -79.0377,
-    source: { kind: "youtube", id: "1BxRsEMRiQg" },
   },
   {
     id: "maui-kaanapali",
@@ -165,7 +177,6 @@ const CAMERAS: Cam[] = [
     lon: -156.6947,
     source: { kind: "youtube", id: "PT2_F-1esPk" },
   },
-  // ---------- Europe ----------
   {
     id: "london-tower-bridge",
     name: "Tower Bridge London",
@@ -173,22 +184,6 @@ const CAMERAS: Cam[] = [
     lat: 51.5055,
     lon: -0.0754,
     source: { kind: "youtube", id: "fis5Yk20j6w" },
-  },
-  {
-    id: "paris-eiffel",
-    name: "Eiffel Tower View",
-    region: "Paris, FR",
-    lat: 48.8584,
-    lon: 2.2945,
-    source: { kind: "youtube", id: "iWzQ7CAcHAk" },
-  },
-  {
-    id: "rome-trevi",
-    name: "Trevi Fountain",
-    region: "Rome, IT",
-    lat: 41.9009,
-    lon: 12.4833,
-    source: { kind: "youtube", id: "Yp7BO_yA4DA" },
   },
   {
     id: "venice-rialto",
@@ -199,23 +194,6 @@ const CAMERAS: Cam[] = [
     source: { kind: "youtube", id: "Ogc2nNcimTQ" },
   },
   {
-    id: "amsterdam-canals",
-    name: "Amsterdam Canals",
-    region: "Amsterdam, NL",
-    lat: 52.3676,
-    lon: 4.9041,
-    source: { kind: "youtube", id: "ailqf9KAEJ8" },
-  },
-  {
-    id: "iceland-reykjavik",
-    name: "Reykjavik Harbor",
-    region: "Reykjavik, IS",
-    lat: 64.1466,
-    lon: -21.9426,
-    source: { kind: "youtube", id: "5ovcQS6QHtE" },
-  },
-  // ---------- Asia / Oceania ----------
-  {
     id: "tokyo-shinjuku",
     name: "Shinjuku Kabukicho",
     region: "Tokyo, JP",
@@ -223,23 +201,6 @@ const CAMERAS: Cam[] = [
     lon: 139.7036,
     source: { kind: "youtube", id: "DjdUEyjx8GM" },
   },
-  {
-    id: "hong-kong-harbor",
-    name: "Victoria Harbor",
-    region: "Hong Kong",
-    lat: 22.2855,
-    lon: 114.1577,
-    source: { kind: "youtube", id: "ULSZ-i_Ksn8" },
-  },
-  {
-    id: "sydney-harbor",
-    name: "Sydney Harbor",
-    region: "Sydney, AU",
-    lat: -33.8568,
-    lon: 151.2153,
-    source: { kind: "youtube", id: "_9pavMzUY-c" },
-  },
-  // ---------- LatAm ----------
   {
     id: "rio-copacabana",
     name: "Copacabana Beach",
@@ -299,7 +260,8 @@ export default function WeatherCameras({
   }, [lat, lon]);
 
   const [activeCam, setActiveCam] = useState<Cam | null>(null);
-  const [view, setView] = useState<"grid" | "map">("grid");
+  const [view, setView] = useState<"grid" | "theater" | "map">("grid");
+  const [theaterCam, setTheaterCam] = useState<Cam | null>(null);
   const { subscribed } = useSubscription();
   const { cameras: favCams, isFavoriteCamera, addCamera, remove } = useFavorites();
 
@@ -356,6 +318,14 @@ export default function WeatherCameras({
               <Grid3x3 className="size-3" /> Grid
             </button>
             <button
+              onClick={() => setView("theater")}
+              className={`px-2 py-1 rounded text-xs flex items-center gap-1 ${
+                view === "theater" ? "bg-primary/20 text-primary" : "text-muted-foreground"
+              }`}
+            >
+              <Maximize2 className="size-3" /> Theater
+            </button>
+            <button
               onClick={() => setView("map")}
               className={`px-2 py-1 rounded text-xs flex items-center gap-1 ${
                 view === "map" ? "bg-primary/20 text-primary" : "text-muted-foreground"
@@ -376,6 +346,13 @@ export default function WeatherCameras({
             const cam = CAMERAS.find((c) => c.id === id);
             if (cam) setActiveCam(cam);
           }}
+        />
+      ) : view === "theater" ? (
+        <TheaterView
+          cams={displayCams.map((n) => n.cam)}
+          activeCamId={(theaterCam ?? displayCams[0]?.cam)?.id}
+          onSelectThumb={(c) => setTheaterCam(c)}
+          onExpand={(c) => setActiveCam(c)}
         />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -466,6 +443,89 @@ export default function WeatherCameras({
         <CameraLightbox cam={activeCam} onClose={() => setActiveCam(null)} />
       )}
     </section>
+  );
+}
+
+function TheaterView({
+  cams,
+  activeCamId,
+  onSelectThumb,
+  onExpand,
+}: {
+  cams: Cam[];
+  activeCamId: string | undefined;
+  onSelectThumb: (c: Cam) => void;
+  onExpand: (c: Cam) => void;
+}) {
+  const featured = cams.find((c) => c.id === activeCamId) ?? cams[0];
+  if (!featured) {
+    return (
+      <div className="text-center py-12 text-muted-foreground text-sm">
+        No cameras available.
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-3">
+      <div className="aspect-video rounded-xl overflow-hidden border border-border bg-black relative group">
+        {featured.source.kind === "image" ? (
+          <RefreshingImage url={featured.source.url} alt={featured.name} />
+        ) : (
+          <iframe
+            src={srcUrl(featured)}
+            title={featured.name}
+            className="w-full h-full"
+            allow="autoplay; encrypted-media; picture-in-picture"
+            allowFullScreen
+          />
+        )}
+        <div className="absolute top-3 left-3 chip px-2 py-1 text-xs font-mono flex items-center gap-1.5">
+          <span className="size-1.5 rounded-full bg-danger animate-pulse" /> LIVE
+        </div>
+        <div className="absolute top-3 right-3 flex items-center gap-2">
+          <button
+            onClick={() => onExpand(featured)}
+            className="chip px-2 py-1 text-xs hover:bg-accent flex items-center gap-1"
+          >
+            <Maximize2 className="size-3" /> Fullscreen
+          </button>
+        </div>
+        <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between">
+          <div className="bg-black/60 backdrop-blur rounded-lg px-3 py-1.5">
+            <div className="text-white text-sm font-medium">{featured.name}</div>
+            <div className="text-white/70 text-[11px] font-mono">{featured.region}</div>
+          </div>
+        </div>
+      </div>
+      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
+        {cams.slice(0, 12).map((c) => (
+          <button
+            key={c.id}
+            onClick={() => onSelectThumb(c)}
+            className={`aspect-video rounded-lg overflow-hidden border-2 relative group ${
+              c.id === featured.id
+                ? "border-primary"
+                : "border-border hover:border-primary/50"
+            }`}
+            title={c.name}
+          >
+            <img
+              src={thumbUrl(c)}
+              alt={c.name}
+              className="w-full h-full object-cover"
+              loading="lazy"
+              onError={(e) => {
+                (e.currentTarget as HTMLImageElement).src =
+                  "https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?w=300&q=60";
+              }}
+            />
+            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-1">
+              <div className="text-white text-[10px] font-medium truncate">{c.name}</div>
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
 

@@ -17,6 +17,7 @@ import { Lock, Crown } from "lucide-react";
 import PageShell from "@/components/PageShell";
 import AdSlot from "@/components/AdSlot";
 import WeatherCameras from "@/components/WeatherCameras";
+import DailyRecommendations from "@/components/DailyRecommendations";
 import FavoriteCities from "@/components/FavoriteCities";
 import { useCity } from "@/lib/city-store";
 import { useSubscription } from "@/lib/auth-store";
@@ -145,6 +146,16 @@ function WeatherPage() {
 
       {/* Favorite Cities (premium) */}
       <FavoriteCities />
+
+      {/* Daily activity recommendations */}
+      {data && (
+        <DailyRecommendations
+          current={data.current}
+          today={data.daily[0]}
+          cityName={city.name}
+        />
+      )}
+
       {/* Sponsored ad — hidden for premium subscribers */}
       {!subscribed && <AdSlot />}
 
