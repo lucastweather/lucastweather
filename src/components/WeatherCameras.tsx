@@ -298,8 +298,40 @@ export default function WeatherCameras({
     return ranked.slice(0, 8);
   }, [lat, lon]);
 
-  const [activeId, setActiveId] = useState<string | null>(null);
+  const [activeCam, setActiveCam] = useState<Cam | null>(null);
   const [view, setView] = useState<"grid" | "map">("grid");
+  const { subscribed } = useSubscription();
+  const { cameras: favCams, isFavoriteCamera, addCamera, remove } = useFavorites();
+
+  // Build favorite cam objects (only the ones in our catalog).
+  const favCamObjects = useMemo(() => {
+    return favCams
+      .map((f) => CAMERAS.find((c) => c.id === f.ref_id))
+      .filter((c): c is Cam => !!c);
+  }, [favCams]);
+
+  // Combined list: favorites first (premium), then nearest (deduped).
+  const displayCams = useMemo(() => {
+    if (!subscribed || favCamObjects.length === 0) return nearest;
+    const favIds = new Set(favCamObjects.map((c) => c.id));
+    const nearestNoFav = nearest.filter((n) => !favIds.has(n.cam.id));
+    return [
+      ...favCamObjects.map((cam) => ({
+        cam,
+        dist: haversineMi(lat, lon, cam.lat, cam.lon),
+      })),
+      ...nearestNoFav,
+    ];
+  }, [favCamObjects, nearest, lat, lon, subscribed]);
+
+  async function toggleFav(cam: Cam) {
+    if (!subscribed) return;
+    if (isFavoriteCamera(cam.id)) {
+      await remove("camera", cam.id);
+    } else {
+      await addCamera({ id: cam.id, name: cam.name, region: cam.region });
+    }
+  }
 
   return (
     <section className="panel p-6">
@@ -337,63 +369,68 @@ export default function WeatherCameras({
 
       {view === "map" ? (
         <CameraMap
-          cams={nearest.map((n) => n.cam)}
+          cams={displayCams.map((n) => n.cam)}
           centerLat={lat}
           centerLon={lon}
           onSelect={(id) => {
-            setActiveId(id);
-            setView("grid");
+            const cam = CAMERAS.find((c) => c.id === id);
+            if (cam) setActiveCam(cam);
           }}
         />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {nearest.map(({ cam, dist }) => {
-            const isActive = activeId === cam.id;
+          {displayCams.map(({ cam, dist }) => {
+            const isFav = isFavoriteCamera(cam.id);
             return (
               <div
                 key={cam.id}
                 className="rounded-xl overflow-hidden border border-border bg-surface-2 group"
               >
                 <div className="aspect-video relative overflow-hidden bg-black">
-                  {isActive && cam.source.kind === "youtube" ? (
-                    <iframe
-                      src={srcUrl(cam)}
-                      title={cam.name}
-                      className="w-full h-full"
-                      allow="autoplay; encrypted-media; picture-in-picture"
-                      allowFullScreen
+                  <button
+                    type="button"
+                    onClick={() => setActiveCam(cam)}
+                    className="w-full h-full relative"
+                    aria-label={`View ${cam.name} fullscreen`}
+                  >
+                    <img
+                      src={thumbUrl(cam)}
+                      alt={cam.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                       loading="lazy"
-                      referrerPolicy="no-referrer-when-downgrade"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).src =
+                          "https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?w=600&q=60";
+                      }}
                     />
-                  ) : cam.source.kind === "image" ? (
-                    <RefreshingImage url={cam.source.url} alt={cam.name} />
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setActiveId(cam.id)}
-                      className="w-full h-full relative"
-                      aria-label={`Play ${cam.name} live stream`}
-                    >
-                      <img
-                        src={thumbUrl(cam)}
-                        alt={cam.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                        loading="lazy"
-                        onError={(e) => {
-                          (e.currentTarget as HTMLImageElement).src =
-                            "https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?w=600&q=60";
-                        }}
-                      />
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/40 transition-colors">
-                        <div className="size-12 rounded-full bg-primary/90 flex items-center justify-center backdrop-blur">
-                          <span className="ml-0.5 border-y-[8px] border-y-transparent border-l-[12px] border-l-primary-foreground" />
-                        </div>
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/50 transition-colors">
+                      <div className="size-12 rounded-full bg-primary/90 flex items-center justify-center backdrop-blur shadow-lg">
+                        <Maximize2 className="size-5 text-primary-foreground" />
                       </div>
-                    </button>
-                  )}
+                    </div>
+                  </button>
                   <div className="absolute top-2 left-2 chip px-1.5 py-0.5 text-[10px] font-mono flex items-center gap-1 z-10">
                     <span className="size-1.5 rounded-full bg-danger animate-pulse" /> LIVE
                   </div>
+                  {subscribed && (
+                    <button
+                      onClick={() => toggleFav(cam)}
+                      className={`absolute top-2 right-2 size-7 rounded-full backdrop-blur flex items-center justify-center transition-colors z-10 ${
+                        isFav
+                          ? "bg-warning/90 text-warning-foreground"
+                          : "bg-black/50 text-white hover:bg-black/70"
+                      }`}
+                      aria-label={isFav ? "Remove favorite" : "Add favorite"}
+                      title={isFav ? "Remove favorite" : "Add favorite"}
+                    >
+                      <Star className={`size-3.5 ${isFav ? "fill-current" : ""}`} />
+                    </button>
+                  )}
+                  {isFav && (
+                    <div className="absolute bottom-2 left-2 chip px-1.5 py-0.5 text-[10px] font-mono text-warning border-warning/40 z-10">
+                      ★ Favorite
+                    </div>
+                  )}
                 </div>
                 <div className="p-2.5 flex items-start justify-between gap-2">
                   <div className="min-w-0">
@@ -408,6 +445,7 @@ export default function WeatherCameras({
                     rel="noopener noreferrer"
                     className="text-muted-foreground hover:text-foreground shrink-0 mt-0.5"
                     aria-label="Open in new tab"
+                    onClick={(e) => e.stopPropagation()}
                   >
                     <ExternalLink className="size-3.5" />
                   </a>
@@ -419,8 +457,14 @@ export default function WeatherCameras({
       )}
       <p className="text-[10px] text-muted-foreground mt-3 font-mono">
         Streams sourced from public YouTube live broadcasts (EarthCam, SkylineWebcams),
-        NPS Yosemite & Yellowstone refresh cams, and USGS volcano cams.
+        NPS Yosemite & Yellowstone refresh cams, and USGS volcano cams. Click any tile for
+        fullscreen with live conditions overlay.
+        {!subscribed && " Upgrade to Premium to favorite cameras."}
       </p>
+
+      {activeCam && (
+        <CameraLightbox cam={activeCam} onClose={() => setActiveCam(null)} />
+      )}
     </section>
   );
 }
