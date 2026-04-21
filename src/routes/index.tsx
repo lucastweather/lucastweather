@@ -12,10 +12,13 @@ import {
   Sparkles,
   Clock,
 } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { Lock, Crown } from "lucide-react";
 import PageShell from "@/components/PageShell";
 import AdSlot from "@/components/AdSlot";
 import WeatherCameras from "@/components/WeatherCameras";
 import { useCity } from "@/lib/city-store";
+import { useSubscription } from "@/lib/auth-store";
 import {
   fetchWeather,
   fetchEarthquakes,
@@ -44,6 +47,7 @@ export const Route = createFileRoute("/")({
 
 function WeatherPage() {
   const [city] = useCity();
+  const { subscribed } = useSubscription();
   const [data, setData] = useState<{
     current: CurrentWeather;
     daily: DailyForecast[];
@@ -129,8 +133,8 @@ function WeatherPage() {
         </div>
       </section>
 
-      {/* Sponsored ad */}
-      <AdSlot />
+      {/* Sponsored ad — hidden for premium subscribers */}
+      {!subscribed && <AdSlot />}
 
       {/* Nearby weather cameras */}
       <WeatherCameras cityName={city.name} lat={city.latitude} lon={city.longitude} />
@@ -174,15 +178,44 @@ function WeatherPage() {
         </div>
       </section>
 
-      {/* 7-day forecast */}
+      {/* 7-day forecast (free) + 16-day teaser (premium) */}
       <section className="panel p-6">
-        <h2 className="text-lg font-semibold mb-4">7-Day Forecast</h2>
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+          <h2 className="text-lg font-semibold">
+            {subscribed ? "16-Day Forecast" : "7-Day Forecast"}
+            {subscribed && (
+              <span className="ml-2 chip px-2 py-0.5 text-[10px] text-warning border-warning/30">
+                <Crown className="size-3 inline -mt-0.5 mr-1" />
+                Premium
+              </span>
+            )}
+          </h2>
+        </div>
         <ul className="divide-y divide-border">
-          {(data?.daily ?? []).map((d, i) => (
+          {(data?.daily ?? []).slice(0, subscribed ? 16 : 7).map((d, i) => (
             <ForecastRow key={d.date} day={d} index={i} />
           ))}
           {!data && <li className="text-sm text-muted-foreground py-2">Loading forecast…</li>}
         </ul>
+        {!subscribed && (data?.daily?.length ?? 0) >= 7 && (
+          <Link
+            to="/premium"
+            className="mt-4 panel p-4 flex items-center justify-between gap-3 border-warning/30 hover:bg-accent/30 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <Lock className="size-5 text-warning" />
+              <div className="text-sm">
+                <div className="font-semibold">9 more days available with Premium</div>
+                <div className="text-muted-foreground text-xs">
+                  Unlock the full 16-day extended forecast for $3/month.
+                </div>
+              </div>
+            </div>
+            <span className="chip px-3 py-1.5 text-xs text-warning border-warning/40">
+              Upgrade →
+            </span>
+          </Link>
+        )}
       </section>
 
       {/* MinuteCast — minute by minute */}
