@@ -17,7 +17,15 @@ export const Route = createFileRoute("/premium")({
   component: PremiumPage,
 });
 
-const tiers = [
+type Tier = {
+  name: string;
+  priceCents: number;
+  blurb: string;
+  highlight?: boolean;
+  features: string[];
+};
+
+const tiers: Tier[] = [
   {
     name: "Pro",
     priceCents: 499,
@@ -53,14 +61,14 @@ const tiers = [
       "Dedicated success engineer",
     ],
   },
-] as const;
+];
 
 function PremiumPage() {
   const search = useSearch({ from: "/premium" });
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
-  async function subscribe(tier: (typeof tiers)[number]) {
+  async function subscribe(tier: Tier) {
     setBusy(tier.name);
     setErr(null);
     try {
