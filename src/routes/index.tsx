@@ -24,12 +24,15 @@ import {
   fetchEarthquakes,
   weatherIcon,
   weatherLabel,
+  forecastNarrative,
   type CurrentWeather,
   type DailyForecast,
   type HourlyPoint,
   type MinutelyPoint,
   type Earthquake,
 } from "@/lib/weather";
+import RadarMap from "@/components/RadarMap";
+import EarthquakeMap from "@/components/EarthquakeMap";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -58,6 +61,12 @@ function WeatherPage() {
   const [magFilter, setMagFilter] = useState<number>(3);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
+  // Radar-driven nowcast intensity (0..1) — used to sync MinuteCast so it
+  // never claims "no rain" when the radar is showing precipitation overhead.
+  const [radarRain, setRadarRain] = useState<{ intensity: number; hasRain: boolean }>({
+    intensity: 0,
+    hasRain: false,
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -218,27 +227,55 @@ function WeatherPage() {
         )}
       </section>
 
-      {/* MinuteCast — minute by minute */}
+      {/* Live radar (synced with MinuteCast below) */}
+      <section className="panel p-6">
+        <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
+          <span>📡</span> Live Radar
+          <span className="chip px-2 py-0.5 text-[10px] text-primary border-primary/30">
+            Past 2h + 30-min outlook
+          </span>
+        </h2>
+        <RadarMap
+          key={`home-${city.id}`}
+          lat={city.latitude}
+          lon={city.longitude}
+          showForecast
+          onNowcast={(intensity, hasRain) => setRadarRain({ intensity, hasRain })}
+        />
+      </section>
+
+      {/* MinuteCast — minute by minute, synchronized with radar nowcast */}
       <section className="panel p-6">
         <h2 className="text-lg font-semibold mb-1 flex items-center gap-2">
           <span>🌧️</span> MinuteCast
           <span className="chip px-2 py-0.5 text-[10px] text-primary border-primary/30">
             Minute-by-minute · 60 min
           </span>
+          {radarRain.hasRain && (
+            <span className="chip px-2 py-0.5 text-[10px] text-warning border-warning/40">
+              Radar-synced
+            </span>
+          )}
         </h2>
         <p className="text-sm text-muted-foreground mb-4">
           {(() => {
             if (!data) return "Loading minute-by-minute precipitation…";
-            const next = data.minutely;
-            if (next.length === 0) return "Minute-by-minute data unavailable for this region.";
+            const next = syncedMinutely(data.minutely, radarRain);
+            if (next.length === 0)
+              return "Minute-by-minute data unavailable for this region.";
             const total = next.reduce((s, m) => s + m.precip, 0);
-            if (total < 0.001) return "No precipitation expected in the next 60 minutes.";
+            if (total < 0.001 && !radarRain.hasRain)
+              return "No precipitation expected in the next 60 minutes.";
+            if (radarRain.hasRain && total < 0.001) {
+              return "Radar shows precipitation overhead — light, brief sprinkles likely.";
+            }
             const startIdx = next.findIndex((m) => m.precip > 0.001);
-            const endIdx = next.length - 1 - [...next].reverse().findIndex((m) => m.precip > 0.001);
+            const endIdx =
+              next.length - 1 - [...next].reverse().findIndex((m) => m.precip > 0.001);
             return `Precipitation from minute ${startIdx} to ${endIdx} · ${total.toFixed(2)}" total`;
           })()}
         </p>
-        <MinuteCastChart minutely={data?.minutely ?? []} />
+        <MinuteCastChart minutely={syncedMinutely(data?.minutely ?? [], radarRain)} />
         <div className="mt-3 flex gap-3 text-xs text-muted-foreground">
           <span className="flex items-center gap-1">
             <span className="size-2 rounded-sm bg-primary/30" />
@@ -284,7 +321,12 @@ function WeatherPage() {
             ))}
           </div>
         </div>
-        <ul className="space-y-2">
+        <EarthquakeMap
+          quakes={quakes.filter((q) => q.mag >= magFilter)}
+          centerLat={city.latitude}
+          centerLon={city.longitude}
+        />
+        <ul className="space-y-2 mt-4">
           {filteredQuakes.map((q) => (
             <li key={q.id} className="flex items-center gap-3 chip px-3 py-2">
               <span
@@ -416,11 +458,35 @@ function ForecastRow({ day, index }: { day: DailyForecast; index: number }) {
         </span>
       </button>
       {open && (
-        <div className="px-12 pb-3 text-xs text-muted-foreground">
-          High {Math.round(day.tMax)}°F · Low {Math.round(day.tMin)}°F · Precip{" "}
-          {day.precipSum.toFixed(2)}" · Chance {day.precipProb ?? 0}%
+        <div className="px-12 pb-3 text-xs text-muted-foreground space-y-1">
+          <p className="text-foreground/80">{forecastNarrative(day)}</p>
+          <p>
+            High {Math.round(day.tMax)}°F · Low {Math.round(day.tMin)}°F · Precip{" "}
+            {day.precipSum.toFixed(2)}" · Chance {day.precipProb ?? 0}%
+          </p>
         </div>
       )}
     </li>
   );
+}
+
+/**
+ * Returns the minutely series, but if the radar shows precipitation overhead
+ * and the model says zero, lift the series to a light baseline so the chart
+ * never under-reports rain that's actually falling. We never go the other way:
+ * if the model predicts rain, we trust it.
+ */
+function syncedMinutely(
+  base: MinutelyPoint[],
+  radar: { intensity: number; hasRain: boolean },
+): MinutelyPoint[] {
+  if (!radar.hasRain || base.length === 0) return base;
+  const modelTotal = base.reduce((s, m) => s + m.precip, 0);
+  if (modelTotal > 0.01) return base;
+  const baseline = Math.max(0.005, Math.min(0.05, radar.intensity * 0.04));
+  return base.map((m, i) => ({
+    ...m,
+    precip: Math.max(m.precip, baseline * (1 - Math.min(1, i / 60) * 0.5)),
+    precipProb: Math.max(m.precipProb, 70),
+  }));
 }
