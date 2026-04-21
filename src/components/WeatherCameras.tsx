@@ -260,7 +260,8 @@ export default function WeatherCameras({
   }, [lat, lon]);
 
   const [activeCam, setActiveCam] = useState<Cam | null>(null);
-  const [view, setView] = useState<"grid" | "map">("grid");
+  const [view, setView] = useState<"grid" | "theater" | "map">("grid");
+  const [theaterCam, setTheaterCam] = useState<Cam | null>(null);
   const { subscribed } = useSubscription();
   const { cameras: favCams, isFavoriteCamera, addCamera, remove } = useFavorites();
 
@@ -315,6 +316,14 @@ export default function WeatherCameras({
               }`}
             >
               <Grid3x3 className="size-3" /> Grid
+            </button>
+            <button
+              onClick={() => setView("theater")}
+              className={`px-2 py-1 rounded text-xs flex items-center gap-1 ${
+                view === "theater" ? "bg-primary/20 text-primary" : "text-muted-foreground"
+              }`}
+            >
+              <Maximize2 className="size-3" /> Theater
             </button>
             <button
               onClick={() => setView("map")}
