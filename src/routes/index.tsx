@@ -321,7 +321,12 @@ function WeatherPage() {
             ))}
           </div>
         </div>
-        <ul className="space-y-2">
+        <EarthquakeMap
+          quakes={quakes.filter((q) => q.mag >= magFilter)}
+          centerLat={city.latitude}
+          centerLon={city.longitude}
+        />
+        <ul className="space-y-2 mt-4">
           {filteredQuakes.map((q) => (
             <li key={q.id} className="flex items-center gap-3 chip px-3 py-2">
               <span
