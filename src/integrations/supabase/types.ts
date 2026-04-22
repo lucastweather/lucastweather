@@ -14,6 +14,80 @@ export type Database = {
   }
   public: {
     Tables: {
+      api_keys: {
+        Row: {
+          created_at: string
+          id: string
+          key_hash: string
+          key_prefix: string
+          label: string
+          last_used_at: string | null
+          monthly_limit: number
+          monthly_usage: number
+          period_start: string
+          revoked_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          key_hash: string
+          key_prefix: string
+          label?: string
+          last_used_at?: string | null
+          monthly_limit?: number
+          monthly_usage?: number
+          period_start?: string
+          revoked_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          key_hash?: string
+          key_prefix?: string
+          label?: string
+          last_used_at?: string | null
+          monthly_limit?: number
+          monthly_usage?: number
+          period_start?: string
+          revoked_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      api_usage_log: {
+        Row: {
+          created_at: string
+          endpoint: string
+          id: number
+          key_id: string
+          status: number
+        }
+        Insert: {
+          created_at?: string
+          endpoint: string
+          id?: number
+          key_id: string
+          status: number
+        }
+        Update: {
+          created_at?: string
+          endpoint?: string
+          id?: number
+          key_id?: string
+          status?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_usage_log_key_id_fkey"
+            columns: ["key_id"]
+            isOneToOne: false
+            referencedRelation: "api_keys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       favorites: {
         Row: {
           admin1: string | null
@@ -103,7 +177,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      increment_api_usage: {
+        Args: { _key_hash: string }
+        Returns: {
+          allowed: boolean
+          key_id: string
+          monthly_limit: number
+          remaining: number
+          user_id: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
