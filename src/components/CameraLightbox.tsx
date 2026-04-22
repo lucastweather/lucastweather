@@ -84,13 +84,14 @@ export default function CameraLightbox({
 
   return (
     <div
-      className="fixed inset-0 z-[100] bg-background/95 backdrop-blur-sm flex items-center justify-center p-4 sm:p-8 animate-in fade-in duration-200"
+      className="fixed inset-0 z-[100] bg-background/95 backdrop-blur-sm overflow-y-auto overscroll-contain animate-in fade-in duration-200"
       onClick={onClose}
     >
-      <div
-        className="relative w-full max-w-6xl aspect-video bg-black rounded-2xl overflow-hidden border border-border shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="min-h-full flex items-start sm:items-center justify-center p-4 sm:p-8">
+        <div
+          className="relative w-full max-w-6xl aspect-video bg-black rounded-2xl overflow-hidden border border-border shadow-2xl"
+          onClick={(e) => e.stopPropagation()}
+        >
         {/* Stream */}
         {cam.source.kind === "image" ? (
           <RefreshingImage url={cam.source.url} alt={cam.name} />
@@ -188,6 +189,7 @@ export default function CameraLightbox({
               Loading conditions…
             </div>
           )}
+        </div>
         </div>
       </div>
     </div>
