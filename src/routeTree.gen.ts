@@ -18,6 +18,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiSubscriptionCheckRouteImport } from './routes/api.subscription-check'
 import { Route as ApiCheckoutRouteImport } from './routes/api.checkout'
 import { Route as ApiBillingPortalRouteImport } from './routes/api.billing-portal'
+import { Route as ApiPublicV1CurrentRouteImport } from './routes/api.public.v1.current'
 
 const RadarRoute = RadarRouteImport.update({
   id: '/radar',
@@ -64,6 +65,11 @@ const ApiBillingPortalRoute = ApiBillingPortalRouteImport.update({
   path: '/billing-portal',
   getParentRoute: () => ApiRoute,
 } as any)
+const ApiPublicV1CurrentRoute = ApiPublicV1CurrentRouteImport.update({
+  id: '/public/v1/current',
+  path: '/public/v1/current',
+  getParentRoute: () => ApiRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -75,6 +81,7 @@ export interface FileRoutesByFullPath {
   '/api/billing-portal': typeof ApiBillingPortalRoute
   '/api/checkout': typeof ApiCheckoutRoute
   '/api/subscription-check': typeof ApiSubscriptionCheckRoute
+  '/api/public/v1/current': typeof ApiPublicV1CurrentRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -86,6 +93,7 @@ export interface FileRoutesByTo {
   '/api/billing-portal': typeof ApiBillingPortalRoute
   '/api/checkout': typeof ApiCheckoutRoute
   '/api/subscription-check': typeof ApiSubscriptionCheckRoute
+  '/api/public/v1/current': typeof ApiPublicV1CurrentRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -98,6 +106,7 @@ export interface FileRoutesById {
   '/api/billing-portal': typeof ApiBillingPortalRoute
   '/api/checkout': typeof ApiCheckoutRoute
   '/api/subscription-check': typeof ApiSubscriptionCheckRoute
+  '/api/public/v1/current': typeof ApiPublicV1CurrentRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -111,6 +120,7 @@ export interface FileRouteTypes {
     | '/api/billing-portal'
     | '/api/checkout'
     | '/api/subscription-check'
+    | '/api/public/v1/current'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -122,6 +132,7 @@ export interface FileRouteTypes {
     | '/api/billing-portal'
     | '/api/checkout'
     | '/api/subscription-check'
+    | '/api/public/v1/current'
   id:
     | '__root__'
     | '/'
@@ -133,6 +144,7 @@ export interface FileRouteTypes {
     | '/api/billing-portal'
     | '/api/checkout'
     | '/api/subscription-check'
+    | '/api/public/v1/current'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -209,6 +221,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiBillingPortalRouteImport
       parentRoute: typeof ApiRoute
     }
+    '/api/public/v1/current': {
+      id: '/api/public/v1/current'
+      path: '/public/v1/current'
+      fullPath: '/api/public/v1/current'
+      preLoaderRoute: typeof ApiPublicV1CurrentRouteImport
+      parentRoute: typeof ApiRoute
+    }
   }
 }
 
@@ -216,12 +235,14 @@ interface ApiRouteChildren {
   ApiBillingPortalRoute: typeof ApiBillingPortalRoute
   ApiCheckoutRoute: typeof ApiCheckoutRoute
   ApiSubscriptionCheckRoute: typeof ApiSubscriptionCheckRoute
+  ApiPublicV1CurrentRoute: typeof ApiPublicV1CurrentRoute
 }
 
 const ApiRouteChildren: ApiRouteChildren = {
   ApiBillingPortalRoute: ApiBillingPortalRoute,
   ApiCheckoutRoute: ApiCheckoutRoute,
   ApiSubscriptionCheckRoute: ApiSubscriptionCheckRoute,
+  ApiPublicV1CurrentRoute: ApiPublicV1CurrentRoute,
 }
 
 const ApiRouteWithChildren = ApiRoute._addFileChildren(ApiRouteChildren)
