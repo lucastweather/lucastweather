@@ -34,6 +34,8 @@ export type DailyForecast = {
   tMin: number;
   precipSum: number;
   precipProb: number;
+  sunrise?: string;
+  sunset?: string;
 };
 
 export type HourlyPoint = {
@@ -43,6 +45,8 @@ export type HourlyPoint = {
   precip: number;
   weatherCode: number;
   windSpeed: number;
+  isDay: boolean;
+  cloudCover: number;
 };
 
 export type MinutelyPoint = { time: string; precip: number; precipProb: number };
@@ -65,9 +69,9 @@ export async function fetchWeather(lat: number, lon: number) {
     current:
       "temperature_2m,apparent_temperature,relative_humidity_2m,pressure_msl,wind_speed_10m,wind_direction_10m,dew_point_2m,uv_index,cloud_cover,is_day,weather_code",
     hourly:
-      "temperature_2m,precipitation_probability,precipitation,weather_code,wind_speed_10m",
+      "temperature_2m,precipitation_probability,precipitation,weather_code,wind_speed_10m,is_day,cloud_cover",
     daily:
-      "weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max",
+      "weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,sunrise,sunset",
     minutely_15: "precipitation,precipitation_probability",
     temperature_unit: "fahrenheit",
     wind_speed_unit: "mph",
@@ -104,6 +108,8 @@ export async function fetchWeather(lat: number, lon: number) {
     tMin: d.daily.temperature_2m_min[i],
     precipSum: d.daily.precipitation_sum[i],
     precipProb: d.daily.precipitation_probability_max[i],
+    sunrise: d.daily.sunrise?.[i],
+    sunset: d.daily.sunset?.[i],
   }));
 
   const hourly: HourlyPoint[] = (d.hourly?.time ?? []).map((t: string, i: number) => ({
@@ -113,6 +119,8 @@ export async function fetchWeather(lat: number, lon: number) {
     precip: d.hourly.precipitation[i] ?? 0,
     weatherCode: d.hourly.weather_code[i],
     windSpeed: d.hourly.wind_speed_10m[i],
+    isDay: d.hourly.is_day?.[i] === 1,
+    cloudCover: d.hourly.cloud_cover?.[i] ?? 0,
   }));
 
   // Build true minute-by-minute precipitation by interpolating the 15-minute
@@ -131,8 +139,6 @@ export async function fetchWeather(lat: number, lon: number) {
       const i0 = Math.min(rawTimes.length - 1, Math.floor(idxF));
       const i1 = Math.min(rawTimes.length - 1, i0 + 1);
       const f = idxF - i0;
-      // Each 15-min bucket is a cumulative total — distribute evenly across
-      // the bucket and interpolate across bucket boundaries.
       const p0 = (rawPrecip[i0] ?? 0) / 15;
       const p1 = (rawPrecip[i1] ?? 0) / 15;
       const precip = p0 * (1 - f) + p1 * f;

@@ -189,14 +189,19 @@ function WeatherPage() {
                 i === 0
                   ? "Now"
                   : `${hr === 0 ? 12 : hr > 12 ? hr - 12 : hr}${hr < 12 ? "a" : "p"}`;
-              const isDay = hr >= 6 && hr < 19;
               return (
                 <div
                   key={h.time}
                   className="chip flex flex-col items-center gap-1 px-3 py-3 min-w-[64px]"
+                  title={`${weatherLabel(h.weatherCode, h.cloudCover)} · ${Math.round(h.temp)}°F · ${h.precipProb}% precip · ${Math.round(h.windSpeed)} mph wind`}
                 >
                   <div className="text-[11px] font-mono text-muted-foreground">{label}</div>
-                  <WeatherIcon code={h.weatherCode} isDay={isDay} className="size-7" />
+                  <WeatherIcon
+                    code={h.weatherCode}
+                    isDay={h.isDay}
+                    cloudCover={h.cloudCover}
+                    className="size-7"
+                  />
                   <div className="text-sm font-semibold">{Math.round(h.temp)}°</div>
                   <div className="text-[10px] font-mono text-info">{h.precipProb}%</div>
                 </div>
@@ -259,10 +264,10 @@ function WeatherPage() {
           </span>
         </h2>
         <RadarMap
-          key={`home-${city.id}-${subscribed}`}
+          key={`home-${city.id}`}
           lat={city.latitude}
           lon={city.longitude}
-          showForecast={subscribed}
+          showForecast={true}
           onNowcast={(intensity, hasRain) => setRadarRain({ intensity, hasRain })}
         />
       </section>
@@ -389,18 +394,31 @@ function WeatherPage() {
 }
 
 function MinuteCastChart({ minutely }: { minutely: MinutelyPoint[] }) {
-  // Render 60 thin bars (one per minute). Even with no precipitation we show
-  // a faint baseline so the chart never looks empty.
+  const [hoverIdx, setHoverIdx] = useState<number | null>(null);
   const bars = minutely.length > 0 ? minutely : Array.from({ length: 60 }).map((_, i) => ({
     time: new Date(Date.now() + i * 60_000).toISOString(),
     precip: 0,
     precipProb: 0,
   }));
   const max = Math.max(0.02, ...bars.map((b) => b.precip));
+  const hover = hoverIdx !== null ? bars[hoverIdx] : null;
+  const intensity = (precip: number) =>
+    precip > 0.05
+      ? "Heavy"
+      : precip > 0.02
+        ? "Moderate"
+        : precip > 0.005
+          ? "Light"
+          : precip > 0
+            ? "Trace"
+            : "None";
 
   return (
     <>
-      <div className="flex items-end gap-[2px] h-24 bg-surface-2/40 rounded-lg px-2 py-2 border border-border">
+      <div
+        className="relative flex items-end gap-[2px] h-24 bg-surface-2/40 rounded-lg px-2 py-2 border border-border"
+        onMouseLeave={() => setHoverIdx(null)}
+      >
         {bars.map((m, i) => {
           const ratio = m.precip / max;
           const heightPct = m.precip > 0 ? Math.max(8, ratio * 100) : 4;
@@ -414,15 +432,37 @@ function MinuteCastChart({ minutely }: { minutely: MinutelyPoint[] }) {
                   : m.precipProb > 30
                     ? "bg-primary/20"
                     : "bg-muted-foreground/15";
+          const isHovered = hoverIdx === i;
           return (
             <div
               key={i}
-              className={`flex-1 rounded-sm ${color} transition-all`}
+              onMouseEnter={() => setHoverIdx(i)}
+              onFocus={() => setHoverIdx(i)}
+              tabIndex={-1}
+              className={`flex-1 rounded-sm ${color} transition-all cursor-pointer ${
+                isHovered ? "ring-2 ring-primary/80 ring-offset-1 ring-offset-surface-2" : ""
+              }`}
               style={{ height: `${heightPct}%` }}
-              title={`+${i}min · ${m.precip.toFixed(3)}" · ${Math.round(m.precipProb)}%`}
+              aria-label={`Minute +${i}: ${m.precip.toFixed(3)} inch, ${Math.round(m.precipProb)}% chance`}
             />
           );
         })}
+        {hover && hoverIdx !== null && (
+          <div
+            className="pointer-events-none absolute -top-2 -translate-y-full px-2.5 py-1.5 rounded-lg bg-popover border border-border shadow-lg text-xs font-mono whitespace-nowrap z-10"
+            style={{
+              left: `calc(${(hoverIdx / Math.max(1, bars.length - 1)) * 100}% )`,
+              transform: "translate(-50%, -100%)",
+            }}
+          >
+            <div className="font-semibold text-foreground">
+              {hoverIdx === 0 ? "Now" : `+${hoverIdx} min`}
+            </div>
+            <div className="text-muted-foreground">
+              {hover.precip.toFixed(3)}" · {Math.round(hover.precipProb)}% · {intensity(hover.precip)}
+            </div>
+          </div>
+        )}
       </div>
       <div className="mt-2 flex justify-between text-[10px] font-mono text-muted-foreground">
         {[0, 10, 20, 30, 40, 50, 60].map((m) => (

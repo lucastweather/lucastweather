@@ -54,7 +54,7 @@ const tiers: Tier[] = [
   },
   {
     name: "Enterprise",
-    priceCents: 9900,
+    priceCents: 1500,
     blurb: "SLAs, white-label, and unlimited seats.",
     features: [
       "Unlimited API calls",
