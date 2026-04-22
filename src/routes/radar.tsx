@@ -88,10 +88,10 @@ function RadarPage() {
         </div>
 
         <RadarMap
-          key={`${city.id}-${subscribed}`}
+          key={`${city.id}`}
           lat={city.latitude}
           lon={city.longitude}
-          showForecast={subscribed}
+          showForecast={true}
         />
 
         {layer === "lightning" && subscribed && (
@@ -112,9 +112,10 @@ function RadarPage() {
             <div className="flex items-center gap-3">
               <Lock className="size-5 text-warning" />
               <div className="text-sm">
-                <div className="font-semibold">Unlock 30-min nowcast & lightning</div>
+                <div className="font-semibold">Unlock lightning & extended outlook</div>
                 <div className="text-muted-foreground text-xs">
-                  Free tier shows past frames only. Upgrade for forward-looking radar.
+                  Radar nowcast is free for everyone. Premium adds lightning telemetry,
+                  hi-res satellite, and 4-hour outlook.
                 </div>
               </div>
             </div>
