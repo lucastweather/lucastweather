@@ -19,6 +19,7 @@ import AdSlot from "@/components/AdSlot";
 import WeatherCameras from "@/components/WeatherCameras";
 import DailyRecommendations from "@/components/DailyRecommendations";
 import FavoriteCities from "@/components/FavoriteCities";
+import WeatherIcon from "@/components/WeatherIcon";
 import { useCity } from "@/lib/city-store";
 import { useSubscription } from "@/lib/auth-store";
 import {
@@ -112,10 +113,17 @@ function WeatherPage() {
           </span>
         </div>
         <div className="mt-3 flex items-center gap-6 flex-wrap">
-          <div className="text-7xl leading-none">
-            {data
-              ? weatherIcon(data.current.weatherCode, data.current.isDay, data.current.cloudCover)
-              : "⛅"}
+          <div className="leading-none">
+            {data ? (
+              <WeatherIcon
+                code={data.current.weatherCode}
+                isDay={data.current.isDay}
+                cloudCover={data.current.cloudCover}
+                className="size-20"
+              />
+            ) : (
+              <WeatherIcon code={2} className="size-20" />
+            )}
           </div>
           <div>
             <div className="text-6xl font-semibold tracking-tight">
@@ -188,7 +196,7 @@ function WeatherPage() {
                   className="chip flex flex-col items-center gap-1 px-3 py-3 min-w-[64px]"
                 >
                   <div className="text-[11px] font-mono text-muted-foreground">{label}</div>
-                  <div className="text-2xl">{weatherIcon(h.weatherCode, isDay)}</div>
+                  <WeatherIcon code={h.weatherCode} isDay={isDay} className="size-7" />
                   <div className="text-sm font-semibold">{Math.round(h.temp)}°</div>
                   <div className="text-[10px] font-mono text-info">{h.precipProb}%</div>
                 </div>
@@ -223,6 +231,7 @@ function WeatherPage() {
         {!subscribed && (data?.daily?.length ?? 0) >= 7 && (
           <Link
             to="/premium"
+            search={{ status: undefined }}
             className="mt-4 panel p-4 flex items-center justify-between gap-3 border-warning/30 hover:bg-accent/30 transition-colors"
           >
             <div className="flex items-center gap-3">
@@ -453,7 +462,9 @@ function ForecastRow({ day, index }: { day: DailyForecast; index: number }) {
         onClick={() => setOpen((o) => !o)}
         className="w-full grid grid-cols-[auto_1fr_auto_auto_auto] items-center gap-4 py-3 text-left hover:bg-accent/30 rounded-lg px-2"
       >
-        <span className="text-2xl w-8 text-center">{weatherIcon(day.weatherCode, true)}</span>
+        <span className="w-8 flex items-center justify-center">
+          <WeatherIcon code={day.weatherCode} isDay className="size-7" />
+        </span>
         <span>
           <div className="font-medium">{label}</div>
           <div className="text-xs text-muted-foreground font-mono">{md}</div>

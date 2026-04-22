@@ -89,6 +89,7 @@ function AuthPage() {
             </div>
             <Link
               to="/premium"
+              search={{ status: undefined }}
               className="chip px-3 py-1.5 text-xs text-warning border-warning/40 hover:bg-warning/10"
             >
               {subscribed ? "Manage" : "Upgrade"}
