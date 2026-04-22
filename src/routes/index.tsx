@@ -189,14 +189,19 @@ function WeatherPage() {
                 i === 0
                   ? "Now"
                   : `${hr === 0 ? 12 : hr > 12 ? hr - 12 : hr}${hr < 12 ? "a" : "p"}`;
-              const isDay = hr >= 6 && hr < 19;
               return (
                 <div
                   key={h.time}
                   className="chip flex flex-col items-center gap-1 px-3 py-3 min-w-[64px]"
+                  title={`${weatherLabel(h.weatherCode, h.cloudCover)} · ${Math.round(h.temp)}°F · ${h.precipProb}% precip · ${Math.round(h.windSpeed)} mph wind`}
                 >
                   <div className="text-[11px] font-mono text-muted-foreground">{label}</div>
-                  <WeatherIcon code={h.weatherCode} isDay={isDay} className="size-7" />
+                  <WeatherIcon
+                    code={h.weatherCode}
+                    isDay={h.isDay}
+                    cloudCover={h.cloudCover}
+                    className="size-7"
+                  />
                   <div className="text-sm font-semibold">{Math.round(h.temp)}°</div>
                   <div className="text-[10px] font-mono text-info">{h.precipProb}%</div>
                 </div>
