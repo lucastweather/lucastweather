@@ -231,6 +231,7 @@ function WeatherPage() {
         {!subscribed && (data?.daily?.length ?? 0) >= 7 && (
           <Link
             to="/premium"
+            search={{ status: undefined }}
             className="mt-4 panel p-4 flex items-center justify-between gap-3 border-warning/30 hover:bg-accent/30 transition-colors"
           >
             <div className="flex items-center gap-3">

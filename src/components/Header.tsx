@@ -55,6 +55,7 @@ export default function Header() {
           })}
           <Link
             to="/admin"
+            search={{ redirect: undefined }}
             className="ml-1 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm border border-border text-muted-foreground hover:text-foreground hover:bg-accent"
             aria-label={user ? "Account" : "Sign in"}
             title={user?.email ?? "Sign in"}
