@@ -231,7 +231,7 @@ function WeatherPage() {
         </div>
         <ul className="divide-y divide-border">
           {(data?.daily ?? []).slice(0, subscribed ? 16 : 7).map((d, i) => (
-            <ForecastRow key={d.date} day={d} index={i} />
+            <ForecastRow key={d.date} day={d} index={i} hourly={data?.hourly ?? []} />
           ))}
           {!data && <li className="text-sm text-muted-foreground py-2">Loading forecast…</li>}
         </ul>
@@ -487,9 +487,110 @@ function Metric({ icon, label, value }: { icon: React.ReactNode; label: string; 
   );
 }
 
-function ForecastRow({ day, index }: { day: DailyForecast; index: number }) {
+function formatLocalDateKey(value: Date) {
+  const year = value.getFullYear();
+  const month = `${value.getMonth() + 1}`.padStart(2, "0");
+  const day = `${value.getDate()}`.padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function getDailyVisualSummary(day: DailyForecast, hourly: HourlyPoint[]) {
+  const sameDay = hourly.filter((hour) => formatLocalDateKey(new Date(hour.time)) === day.date);
+  const daytime = sameDay.filter((hour) => hour.isDay);
+  const sample = daytime.length > 0 ? daytime : sameDay;
+
+  if (sample.length === 0) {
+    const fallbackCloud = day.weatherCode === 1 ? 30 : day.weatherCode === 2 ? 70 : 100;
+    return {
+      code: day.weatherCode,
+      cloudCover: fallbackCloud,
+      label: weatherLabel(day.weatherCode, fallbackCloud, true),
+    };
+  }
+
+  const avgCloud = Math.round(
+    sample.reduce((sum, hour) => sum + (hour.cloudCover ?? 0), 0) / sample.length,
+  );
+  const thunderHours = sample.filter((hour) => [95, 96, 99].includes(hour.weatherCode));
+  const snowHours = sample.filter((hour) => [71, 73, 75, 77, 85, 86].includes(hour.weatherCode));
+  const rainHours = sample.filter((hour) =>
+    [51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82].includes(hour.weatherCode),
+  );
+
+  if (thunderHours.length >= Math.ceil(sample.length * 0.35)) {
+    return { code: 95, cloudCover: 100, label: weatherLabel(95, 100, true) };
+  }
+
+  if (snowHours.length >= Math.ceil(sample.length * 0.35)) {
+    return { code: 73, cloudCover: 100, label: weatherLabel(73, 100, true) };
+  }
+
+  if (rainHours.length >= Math.ceil(sample.length * 0.45)) {
+    const heavyRain = rainHours.some((hour) => [65, 67, 82].includes(hour.weatherCode));
+    const code = heavyRain ? 65 : 63;
+    return { code, cloudCover: 100, label: weatherLabel(code, 100, true) };
+  }
+
+  const sunnyHours = sample.filter(
+    (hour) =>
+      hour.weatherCode === 0 ||
+      hour.weatherCode === 1 ||
+      (hour.weatherCode === 2 && hour.cloudCover <= 40),
+  ).length;
+  const mostlySunnyHours = sample.filter(
+    (hour) =>
+      hour.weatherCode === 1 ||
+      (hour.weatherCode === 2 && hour.cloudCover > 40 && hour.cloudCover <= 60),
+  ).length;
+  const partlyHours = sample.filter(
+    (hour) => hour.weatherCode === 2 && hour.cloudCover > 40 && hour.cloudCover <= 70,
+  ).length;
+  const cloudyHours = sample.filter(
+    (hour) => hour.weatherCode === 3 || (hour.weatherCode === 2 && hour.cloudCover > 70),
+  ).length;
+
+  const sunnyShare = sunnyHours / sample.length;
+  const mostlySunnyShare = mostlySunnyHours / sample.length;
+  const partlyShare = partlyHours / sample.length;
+  const cloudyShare = cloudyHours / sample.length;
+
+  if (sunnyShare >= 0.55 && avgCloud <= 35) {
+    return { code: 0, cloudCover: Math.min(avgCloud, 20), label: weatherLabel(0, avgCloud, true) };
+  }
+
+  if (sunnyShare >= 0.5 || (sunnyShare + mostlySunnyShare >= 0.65 && avgCloud <= 50)) {
+    return { code: 1, cloudCover: Math.min(Math.max(avgCloud, 25), 45), label: weatherLabel(1, avgCloud, true) };
+  }
+
+  if (partlyShare >= 0.35 || (sunnyShare + partlyShare >= 0.5 && avgCloud <= 65)) {
+    return { code: 2, cloudCover: 50, label: weatherLabel(2, 50, true) };
+  }
+
+  if (cloudyShare >= 0.35 || avgCloud > 65) {
+    return { code: 2, cloudCover: 80, label: weatherLabel(2, 80, true) };
+  }
+
+  const fallbackCloud = avgCloud > 65 ? 80 : avgCloud > 40 ? 50 : 30;
+  const fallbackCode = avgCloud <= 25 ? 0 : avgCloud <= 45 ? 1 : 2;
+  return {
+    code: fallbackCode,
+    cloudCover: fallbackCloud,
+    label: weatherLabel(fallbackCode, fallbackCloud, true),
+  };
+}
+
+function ForecastRow({
+  day,
+  index,
+  hourly,
+}: {
+  day: DailyForecast;
+  index: number;
+  hourly: HourlyPoint[];
+}) {
   const [open, setOpen] = useState(false);
   const date = parseCalendarDate(day.date);
+  const visual = getDailyVisualSummary(day, hourly);
   const label =
     index === 0
       ? "Today"
@@ -505,14 +606,19 @@ function ForecastRow({ day, index }: { day: DailyForecast; index: number }) {
         className="w-full grid grid-cols-[auto_1fr_auto_auto_auto] items-center gap-4 py-3 text-left hover:bg-accent/30 rounded-lg px-2"
       >
         <span className="w-8 flex items-center justify-center">
-          <WeatherIcon code={day.weatherCode} isDay cloudCover={day.weatherCode === 1 ? 30 : day.weatherCode === 2 ? 70 : 100} className="size-7" />
+          <WeatherIcon
+            code={visual.code}
+            isDay
+            cloudCover={visual.cloudCover}
+            className="size-7"
+          />
         </span>
         <span>
           <div className="font-medium">{label}</div>
           <div className="text-xs text-muted-foreground font-mono">{md}</div>
         </span>
         <span className="hidden sm:block text-sm text-muted-foreground">
-          {weatherLabel(day.weatherCode, day.weatherCode === 1 ? 30 : day.weatherCode === 2 ? 70 : 100, true)}
+          {visual.label}
         </span>
         <span className="text-xs text-info flex items-center gap-2">
           {day.precipSum > 0 && <span className="font-mono">💧 {day.precipSum.toFixed(2)}"</span>}
