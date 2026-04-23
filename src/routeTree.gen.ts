@@ -16,8 +16,10 @@ import { Route as AlertsRouteImport } from './routes/alerts'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiSubscriptionCheckRouteImport } from './routes/api.subscription-check'
+import { Route as ApiKeysRouteImport } from './routes/api.keys'
 import { Route as ApiCheckoutRouteImport } from './routes/api.checkout'
 import { Route as ApiBillingPortalRouteImport } from './routes/api.billing-portal'
+import { Route as ApiKeysRevokeRouteImport } from './routes/api.keys.revoke'
 import { Route as ApiPublicV1CurrentRouteImport } from './routes/api.public.v1.current'
 
 const RadarRoute = RadarRouteImport.update({
@@ -55,6 +57,11 @@ const ApiSubscriptionCheckRoute = ApiSubscriptionCheckRouteImport.update({
   path: '/subscription-check',
   getParentRoute: () => ApiRoute,
 } as any)
+const ApiKeysRoute = ApiKeysRouteImport.update({
+  id: '/keys',
+  path: '/keys',
+  getParentRoute: () => ApiRoute,
+} as any)
 const ApiCheckoutRoute = ApiCheckoutRouteImport.update({
   id: '/checkout',
   path: '/checkout',
@@ -64,6 +71,11 @@ const ApiBillingPortalRoute = ApiBillingPortalRouteImport.update({
   id: '/billing-portal',
   path: '/billing-portal',
   getParentRoute: () => ApiRoute,
+} as any)
+const ApiKeysRevokeRoute = ApiKeysRevokeRouteImport.update({
+  id: '/revoke',
+  path: '/revoke',
+  getParentRoute: () => ApiKeysRoute,
 } as any)
 const ApiPublicV1CurrentRoute = ApiPublicV1CurrentRouteImport.update({
   id: '/public/v1/current',
@@ -80,7 +92,9 @@ export interface FileRoutesByFullPath {
   '/radar': typeof RadarRoute
   '/api/billing-portal': typeof ApiBillingPortalRoute
   '/api/checkout': typeof ApiCheckoutRoute
+  '/api/keys': typeof ApiKeysRouteWithChildren
   '/api/subscription-check': typeof ApiSubscriptionCheckRoute
+  '/api/keys/revoke': typeof ApiKeysRevokeRoute
   '/api/public/v1/current': typeof ApiPublicV1CurrentRoute
 }
 export interface FileRoutesByTo {
@@ -92,7 +106,9 @@ export interface FileRoutesByTo {
   '/radar': typeof RadarRoute
   '/api/billing-portal': typeof ApiBillingPortalRoute
   '/api/checkout': typeof ApiCheckoutRoute
+  '/api/keys': typeof ApiKeysRouteWithChildren
   '/api/subscription-check': typeof ApiSubscriptionCheckRoute
+  '/api/keys/revoke': typeof ApiKeysRevokeRoute
   '/api/public/v1/current': typeof ApiPublicV1CurrentRoute
 }
 export interface FileRoutesById {
@@ -105,7 +121,9 @@ export interface FileRoutesById {
   '/radar': typeof RadarRoute
   '/api/billing-portal': typeof ApiBillingPortalRoute
   '/api/checkout': typeof ApiCheckoutRoute
+  '/api/keys': typeof ApiKeysRouteWithChildren
   '/api/subscription-check': typeof ApiSubscriptionCheckRoute
+  '/api/keys/revoke': typeof ApiKeysRevokeRoute
   '/api/public/v1/current': typeof ApiPublicV1CurrentRoute
 }
 export interface FileRouteTypes {
@@ -119,7 +137,9 @@ export interface FileRouteTypes {
     | '/radar'
     | '/api/billing-portal'
     | '/api/checkout'
+    | '/api/keys'
     | '/api/subscription-check'
+    | '/api/keys/revoke'
     | '/api/public/v1/current'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -131,7 +151,9 @@ export interface FileRouteTypes {
     | '/radar'
     | '/api/billing-portal'
     | '/api/checkout'
+    | '/api/keys'
     | '/api/subscription-check'
+    | '/api/keys/revoke'
     | '/api/public/v1/current'
   id:
     | '__root__'
@@ -143,7 +165,9 @@ export interface FileRouteTypes {
     | '/radar'
     | '/api/billing-portal'
     | '/api/checkout'
+    | '/api/keys'
     | '/api/subscription-check'
+    | '/api/keys/revoke'
     | '/api/public/v1/current'
   fileRoutesById: FileRoutesById
 }
@@ -207,6 +231,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSubscriptionCheckRouteImport
       parentRoute: typeof ApiRoute
     }
+    '/api/keys': {
+      id: '/api/keys'
+      path: '/keys'
+      fullPath: '/api/keys'
+      preLoaderRoute: typeof ApiKeysRouteImport
+      parentRoute: typeof ApiRoute
+    }
     '/api/checkout': {
       id: '/api/checkout'
       path: '/checkout'
@@ -221,6 +252,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiBillingPortalRouteImport
       parentRoute: typeof ApiRoute
     }
+    '/api/keys/revoke': {
+      id: '/api/keys/revoke'
+      path: '/revoke'
+      fullPath: '/api/keys/revoke'
+      preLoaderRoute: typeof ApiKeysRevokeRouteImport
+      parentRoute: typeof ApiKeysRoute
+    }
     '/api/public/v1/current': {
       id: '/api/public/v1/current'
       path: '/public/v1/current'
@@ -231,9 +269,21 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface ApiKeysRouteChildren {
+  ApiKeysRevokeRoute: typeof ApiKeysRevokeRoute
+}
+
+const ApiKeysRouteChildren: ApiKeysRouteChildren = {
+  ApiKeysRevokeRoute: ApiKeysRevokeRoute,
+}
+
+const ApiKeysRouteWithChildren =
+  ApiKeysRoute._addFileChildren(ApiKeysRouteChildren)
+
 interface ApiRouteChildren {
   ApiBillingPortalRoute: typeof ApiBillingPortalRoute
   ApiCheckoutRoute: typeof ApiCheckoutRoute
+  ApiKeysRoute: typeof ApiKeysRouteWithChildren
   ApiSubscriptionCheckRoute: typeof ApiSubscriptionCheckRoute
   ApiPublicV1CurrentRoute: typeof ApiPublicV1CurrentRoute
 }
@@ -241,6 +291,7 @@ interface ApiRouteChildren {
 const ApiRouteChildren: ApiRouteChildren = {
   ApiBillingPortalRoute: ApiBillingPortalRoute,
   ApiCheckoutRoute: ApiCheckoutRoute,
+  ApiKeysRoute: ApiKeysRouteWithChildren,
   ApiSubscriptionCheckRoute: ApiSubscriptionCheckRoute,
   ApiPublicV1CurrentRoute: ApiPublicV1CurrentRoute,
 }
