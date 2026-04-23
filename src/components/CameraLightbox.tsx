@@ -167,7 +167,7 @@ export default function CameraLightbox({
                     {Math.round(wx.temperature)}°F
                   </div>
                   <div className="text-[11px] sm:text-xs text-white/80 mt-1 truncate">
-                    {weatherLabel(wx.weatherCode, wx.cloudCover)} · Feels{" "}
+                    {weatherLabel(wx.weatherCode, wx.cloudCover, wx.isDay)} · Feels{" "}
                     {Math.round(wx.apparent)}°
                   </div>
                 </div>

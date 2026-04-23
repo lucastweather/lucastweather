@@ -200,11 +200,11 @@ export function forecastNarrative(d: DailyForecast): string {
   return `Expect ${cond} with a high near ${high}°F and a low around ${low}°F.${precip}${temp}`;
 }
 
-export function weatherLabel(code: number, cloudCover = 0): string {
+export function weatherLabel(code: number, cloudCover = 0, isDay = true): string {
   const map: Record<number, string> = {
-    0: "Clear sky",
-    1: "Mostly sunny",
-    2: cloudCover > 60 ? "Mostly cloudy" : "Partly sunny",
+    0: isDay ? "Sunny" : "Clear",
+    1: isDay ? "Mostly sunny" : "Mostly clear",
+    2: cloudCover > 65 ? "Mostly cloudy" : isDay ? "Partly sunny" : "Partly cloudy",
     3: "Overcast",
     45: "Fog",
     48: "Freezing fog",

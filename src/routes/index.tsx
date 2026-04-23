@@ -131,9 +131,10 @@ function WeatherPage() {
             </div>
             <div className="text-sm text-muted-foreground mt-1">
               {data
-                ? `Feels like ${Math.round(data.current.apparent)}°F · ${weatherLabel(
+                  ? `Feels like ${Math.round(data.current.apparent)}°F · ${weatherLabel(
                     data.current.weatherCode,
                     data.current.cloudCover,
+                    data.current.isDay,
                   )}`
                 : loading
                   ? "Loading…"
@@ -193,7 +194,7 @@ function WeatherPage() {
                 <div
                   key={h.time}
                   className="chip flex flex-col items-center gap-1 px-3 py-3 min-w-[64px]"
-                  title={`${weatherLabel(h.weatherCode, h.cloudCover)} · ${Math.round(h.temp)}°F · ${h.precipProb}% precip · ${Math.round(h.windSpeed)} mph wind`}
+                  title={`${weatherLabel(h.weatherCode, h.cloudCover, h.isDay)} · ${Math.round(h.temp)}°F · ${h.precipProb}% precip · ${Math.round(h.windSpeed)} mph wind`}
                 >
                   <div className="text-[11px] font-mono text-muted-foreground">{label}</div>
                   <WeatherIcon
