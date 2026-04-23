@@ -21,6 +21,7 @@ import DailyRecommendations from "@/components/DailyRecommendations";
 import FavoriteCities from "@/components/FavoriteCities";
 import WeatherIcon from "@/components/WeatherIcon";
 import { useCity } from "@/lib/city-store";
+import { parseCalendarDate } from "@/lib/date";
 import { useSubscription } from "@/lib/auth-store";
 import {
   fetchWeather,
@@ -488,7 +489,7 @@ function Metric({ icon, label, value }: { icon: React.ReactNode; label: string; 
 
 function ForecastRow({ day, index }: { day: DailyForecast; index: number }) {
   const [open, setOpen] = useState(false);
-  const date = new Date(day.date);
+  const date = parseCalendarDate(day.date);
   const label =
     index === 0
       ? "Today"
@@ -504,14 +505,14 @@ function ForecastRow({ day, index }: { day: DailyForecast; index: number }) {
         className="w-full grid grid-cols-[auto_1fr_auto_auto_auto] items-center gap-4 py-3 text-left hover:bg-accent/30 rounded-lg px-2"
       >
         <span className="w-8 flex items-center justify-center">
-          <WeatherIcon code={day.weatherCode} isDay className="size-7" />
+          <WeatherIcon code={day.weatherCode} isDay cloudCover={day.weatherCode === 1 ? 30 : day.weatherCode === 2 ? 70 : 100} className="size-7" />
         </span>
         <span>
           <div className="font-medium">{label}</div>
           <div className="text-xs text-muted-foreground font-mono">{md}</div>
         </span>
-          <span className="hidden sm:block text-sm text-muted-foreground">
-            {weatherLabel(day.weatherCode, 0, true)}
+        <span className="hidden sm:block text-sm text-muted-foreground">
+          {weatherLabel(day.weatherCode, day.weatherCode === 1 ? 30 : day.weatherCode === 2 ? 70 : 100, true)}
         </span>
         <span className="text-xs text-info flex items-center gap-2">
           {day.precipSum > 0 && <span className="font-mono">💧 {day.precipSum.toFixed(2)}"</span>}
