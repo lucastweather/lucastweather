@@ -62,7 +62,7 @@ export async function geocode(query: string): Promise<GeoResult[]> {
   return data.results ?? [];
 }
 
-export async function fetchWeather(lat: number, lon: number) {
+export async function fetchWeather(lat: number, lon: number, forecastDays = 16) {
   const params = new URLSearchParams({
     latitude: String(lat),
     longitude: String(lon),
@@ -78,8 +78,7 @@ export async function fetchWeather(lat: number, lon: number) {
     precipitation_unit: "inch",
     pressure_unit: "inHg",
     timezone: "auto",
-    forecast_days: "16",
-    forecast_hours: "24",
+    forecast_days: String(Math.max(1, Math.min(16, forecastDays))),
     forecast_minutely_15: "16",
     models: "best_match",
   });

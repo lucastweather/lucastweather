@@ -76,7 +76,7 @@ function WeatherPage() {
     let cancelled = false;
     setLoading(true);
     setErr(null);
-    fetchWeather(city.latitude, city.longitude)
+    fetchWeather(city.latitude, city.longitude, subscribed ? 16 : 7)
       .then((d) => {
         if (!cancelled) setData(d);
       })
@@ -85,7 +85,7 @@ function WeatherPage() {
     return () => {
       cancelled = true;
     };
-  }, [city.id, city.latitude, city.longitude]);
+  }, [city.id, city.latitude, city.longitude, subscribed]);
 
   useEffect(() => {
     fetchEarthquakes().then(setQuakes);
