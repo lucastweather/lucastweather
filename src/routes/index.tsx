@@ -176,7 +176,11 @@ function WeatherPage() {
       <WeatherCameras cityName={city.name} lat={city.latitude} lon={city.longitude} />
 
       {/* Hourly forecast — FREE */}
-      <HourlyForecast hourly={data?.hourly ?? []} loading={!data} />
+      <HourlyForecast
+        hourly={data?.hourly ?? []}
+        loading={!data}
+        utcOffsetSeconds={data?.utcOffsetSeconds ?? 0}
+      />
 
       {/* 7-day forecast (free) + 16-day teaser (premium) */}
       <section className="panel p-6">
