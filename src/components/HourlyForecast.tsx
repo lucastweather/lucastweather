@@ -35,11 +35,12 @@ export default function HourlyForecast({
               i === 0
                 ? "Now"
                 : `${hr === 0 ? 12 : hr > 12 ? hr - 12 : hr}${hr < 12 ? "a" : "p"}`;
+            const showPrecip = h.precipProb > 40;
             return (
               <div
                 key={h.time}
                 className="chip flex flex-col items-center gap-1 px-3 py-3 min-w-[64px]"
-                title={`${weatherLabel(h.weatherCode, h.cloudCover, h.isDay)} · ${Math.round(h.temp)}°F · ${h.precipProb}% precip · ${Math.round(h.windSpeed)} mph wind`}
+                title={`${weatherLabel(h.weatherCode, h.cloudCover, h.isDay)} · ${Math.round(h.temp)}°F${showPrecip ? ` · ${h.precipProb}% precip` : ""} · ${Math.round(h.windSpeed)} mph wind`}
               >
                 <div className="text-[11px] font-mono text-muted-foreground">{label}</div>
                 <WeatherIcon
@@ -49,7 +50,9 @@ export default function HourlyForecast({
                   className="size-7"
                 />
                 <div className="text-sm font-semibold">{Math.round(h.temp)}°</div>
-                <div className="text-[10px] font-mono text-info">{h.precipProb}%</div>
+                <div className="text-[10px] font-mono text-info min-h-[14px]">
+                  {showPrecip ? `${h.precipProb}%` : ""}
+                </div>
               </div>
             );
           })}
