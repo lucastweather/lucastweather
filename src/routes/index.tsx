@@ -62,6 +62,7 @@ function WeatherPage() {
     daily: DailyForecast[];
     hourly: HourlyPoint[];
     minutely: MinutelyPoint[];
+    utcOffsetSeconds: number;
   } | null>(null);
   const [quakes, setQuakes] = useState<Earthquake[]>([]);
   const [magFilter, setMagFilter] = useState<number>(3);
