@@ -457,10 +457,6 @@ function getDailyVisualSummary(day: DailyForecast, hourly: HourlyPoint[]) {
   const sameDay = hourly.filter((hour) => localDateKey(hour.time) === day.date);
   const daytime = sameDay.filter((hour) => hour.isDay);
   const sample = daytime.length > 0 ? daytime : sameDay;
-
-  const daytime = sameDay.filter((hour) => hour.isDay);
-  const sample = daytime.length > 0 ? daytime : sameDay;
-
   if (sample.length === 0) {
     const fallbackCloud = day.weatherCode === 1 ? 30 : day.weatherCode === 2 ? 70 : 100;
     return {
