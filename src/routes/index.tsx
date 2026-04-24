@@ -453,15 +453,11 @@ function Metric({ icon, label, value }: { icon: React.ReactNode; label: string; 
   );
 }
 
-function formatLocalDateKey(value: Date) {
-  const year = value.getFullYear();
-  const month = `${value.getMonth() + 1}`.padStart(2, "0");
-  const day = `${value.getDate()}`.padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
 function getDailyVisualSummary(day: DailyForecast, hourly: HourlyPoint[]) {
-  const sameDay = hourly.filter((hour) => formatLocalDateKey(new Date(hour.time)) === day.date);
+  const sameDay = hourly.filter((hour) => localDateKey(hour.time) === day.date);
+  const daytime = sameDay.filter((hour) => hour.isDay);
+  const sample = daytime.length > 0 ? daytime : sameDay;
+
   const daytime = sameDay.filter((hour) => hour.isDay);
   const sample = daytime.length > 0 ? daytime : sameDay;
 
