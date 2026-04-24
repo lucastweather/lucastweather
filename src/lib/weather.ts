@@ -174,8 +174,13 @@ export function weatherIcon(code: number, isDay = true, cloudCover = 0): string 
  * conditions, temperature spread, and precipitation outlook into one sentence
  * the way a TV meteorologist would phrase it.
  */
-export function forecastNarrative(d: DailyForecast): string {
-  const cond = weatherLabel(d.weatherCode).toLowerCase();
+export function forecastNarrative(
+  d: DailyForecast,
+  override?: { code?: number; cloudCover?: number },
+): string {
+  const code = override?.code ?? d.weatherCode;
+  const cloud = override?.cloudCover ?? 0;
+  const cond = weatherLabel(code, cloud, true).toLowerCase();
   const high = Math.round(d.tMax);
   const low = Math.round(d.tMin);
   let precip = "";
