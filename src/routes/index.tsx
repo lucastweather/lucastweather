@@ -21,7 +21,7 @@ import DailyRecommendations from "@/components/DailyRecommendations";
 import FavoriteCities from "@/components/FavoriteCities";
 import WeatherIcon from "@/components/WeatherIcon";
 import { useCity } from "@/lib/city-store";
-import { parseCalendarDate, localDateKey, parseLocalDateTime } from "@/lib/date";
+import { parseCalendarDate, localDateKey } from "@/lib/date";
 import { useSubscription } from "@/lib/auth-store";
 import {
   fetchWeather,
