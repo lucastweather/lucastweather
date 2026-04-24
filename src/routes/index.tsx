@@ -589,14 +589,15 @@ function ForecastRow({
         </span>
       </button>
       {open && (
-        <div className="px-12 pb-3 text-xs text-muted-foreground space-y-1">
-          <p className="text-foreground/80">
+        <div className="px-4 sm:px-12 pb-4 text-xs text-muted-foreground space-y-3">
+          <p className="text-foreground/80 text-sm">
             {forecastNarrative(day, { code: visual.code, cloudCover: visual.cloudCover })}
           </p>
           <p>
             High {Math.round(day.tMax)}°F · Low {Math.round(day.tMin)}°F · Precip{" "}
             {day.precipSum.toFixed(2)}" · Chance {day.precipProb ?? 0}%
           </p>
+          <HourlyGraph hours={hourly.filter((h) => localDateKey(h.time) === day.date)} />
         </div>
       )}
     </li>
