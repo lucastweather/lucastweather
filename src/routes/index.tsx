@@ -21,12 +21,11 @@ import DailyRecommendations from "@/components/DailyRecommendations";
 import FavoriteCities from "@/components/FavoriteCities";
 import WeatherIcon from "@/components/WeatherIcon";
 import { useCity } from "@/lib/city-store";
-import { parseCalendarDate } from "@/lib/date";
+import { parseCalendarDate, localDateKey } from "@/lib/date";
 import { useSubscription } from "@/lib/auth-store";
 import {
   fetchWeather,
   fetchEarthquakes,
-  weatherIcon,
   weatherLabel,
   forecastNarrative,
   type CurrentWeather,
@@ -38,6 +37,8 @@ import {
 import RadarMap from "@/components/RadarMap";
 import EarthquakeMap from "@/components/EarthquakeMap";
 import HourlyForecast from "@/components/HourlyForecast";
+import HourlyGraph from "@/components/HourlyGraph";
+
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -61,6 +62,7 @@ function WeatherPage() {
     daily: DailyForecast[];
     hourly: HourlyPoint[];
     minutely: MinutelyPoint[];
+    utcOffsetSeconds: number;
   } | null>(null);
   const [quakes, setQuakes] = useState<Earthquake[]>([]);
   const [magFilter, setMagFilter] = useState<number>(3);
@@ -174,7 +176,11 @@ function WeatherPage() {
       <WeatherCameras cityName={city.name} lat={city.latitude} lon={city.longitude} />
 
       {/* Hourly forecast — FREE */}
-      <HourlyForecast hourly={data?.hourly ?? []} loading={!data} />
+      <HourlyForecast
+        hourly={data?.hourly ?? []}
+        loading={!data}
+        utcOffsetSeconds={data?.utcOffsetSeconds ?? 0}
+      />
 
       {/* 7-day forecast (free) + 16-day teaser (premium) */}
       <section className="panel p-6">
@@ -447,18 +453,10 @@ function Metric({ icon, label, value }: { icon: React.ReactNode; label: string; 
   );
 }
 
-function formatLocalDateKey(value: Date) {
-  const year = value.getFullYear();
-  const month = `${value.getMonth() + 1}`.padStart(2, "0");
-  const day = `${value.getDate()}`.padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
 function getDailyVisualSummary(day: DailyForecast, hourly: HourlyPoint[]) {
-  const sameDay = hourly.filter((hour) => formatLocalDateKey(new Date(hour.time)) === day.date);
+  const sameDay = hourly.filter((hour) => localDateKey(hour.time) === day.date);
   const daytime = sameDay.filter((hour) => hour.isDay);
   const sample = daytime.length > 0 ? daytime : sameDay;
-
   if (sample.length === 0) {
     const fallbackCloud = day.weatherCode === 1 ? 30 : day.weatherCode === 2 ? 70 : 100;
     return {
@@ -591,14 +589,15 @@ function ForecastRow({
         </span>
       </button>
       {open && (
-        <div className="px-12 pb-3 text-xs text-muted-foreground space-y-1">
-          <p className="text-foreground/80">
+        <div className="px-4 sm:px-12 pb-4 text-xs text-muted-foreground space-y-3">
+          <p className="text-foreground/80 text-sm">
             {forecastNarrative(day, { code: visual.code, cloudCover: visual.cloudCover })}
           </p>
           <p>
             High {Math.round(day.tMax)}°F · Low {Math.round(day.tMin)}°F · Precip{" "}
             {day.precipSum.toFixed(2)}" · Chance {day.precipProb ?? 0}%
           </p>
+          <HourlyGraph hours={hourly.filter((h) => localDateKey(h.time) === day.date)} />
         </div>
       )}
     </li>
