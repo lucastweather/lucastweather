@@ -293,6 +293,9 @@ function WeatherPage() {
         </div>
       </section>
 
+      {/* National Hurricane Center tropical outlook + active storms */}
+      <HurricaneTracker />
+
       {/* Earthquake tracker */}
       <section className="panel p-6">
         <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
