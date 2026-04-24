@@ -591,7 +591,9 @@ function ForecastRow({
       </button>
       {open && (
         <div className="px-12 pb-3 text-xs text-muted-foreground space-y-1">
-          <p className="text-foreground/80">{forecastNarrative(day)}</p>
+          <p className="text-foreground/80">
+            {forecastNarrative(day, { code: visual.code, cloudCover: visual.cloudCover })}
+          </p>
           <p>
             High {Math.round(day.tMax)}°F · Low {Math.round(day.tMin)}°F · Precip{" "}
             {day.precipSum.toFixed(2)}" · Chance {day.precipProb ?? 0}%
