@@ -150,7 +150,9 @@ export async function fetchWeather(lat: number, lon: number, forecastDays = 16) 
     }
   }
 
-  return { current, daily, hourly, minutely };
+  const utcOffsetSeconds: number = d.utc_offset_seconds ?? 0;
+
+  return { current, daily, hourly, minutely, utcOffsetSeconds };
 }
 
 export function weatherIcon(code: number, isDay = true, cloudCover = 0): string {
