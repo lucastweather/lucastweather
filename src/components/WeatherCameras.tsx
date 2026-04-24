@@ -127,16 +127,8 @@ function haversineMi(lat1: number, lon1: number, lat2: number, lon2: number) {
   return 2 * R * Math.asin(Math.sqrt(a));
 }
 
-function srcUrl(c: Cam) {
-  return c.source.url;
-}
-
 function externalUrl(c: Cam) {
   return c.source.url;
-}
-
-function thumbUrl(c: Cam) {
-  return `${c.source.url}?t=${Math.floor(Date.now() / 60000)}`;
 }
 
 export default function WeatherCameras({
@@ -265,11 +257,10 @@ export default function WeatherCameras({
                     className="w-full h-full relative"
                     aria-label={`View ${cam.name} fullscreen`}
                   >
-                    <img
-                      src={thumbUrl(cam)}
+                    <RefreshingImage
+                      url={cam.source.url}
                       alt={cam.name}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                      loading="lazy"
                     />
                     <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/50 transition-colors">
                       <div className="size-12 rounded-full bg-primary/90 flex items-center justify-center backdrop-blur shadow-lg">
@@ -388,12 +379,7 @@ function TheaterView({
             }`}
             title={c.name}
           >
-            <img
-              src={thumbUrl(c)}
-              alt={c.name}
-              className="w-full h-full object-cover"
-              loading="lazy"
-            />
+            <RefreshingImage url={c.source.url} alt={c.name} className="w-full h-full object-cover" />
             <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-1">
               <div className="text-white text-[10px] font-medium truncate">{c.name}</div>
             </div>
@@ -404,20 +390,45 @@ function TheaterView({
   );
 }
 
-function RefreshingImage({ url, alt }: { url: string; alt: string }) {
-  const [bust, setBust] = useState(() => Math.floor(Date.now() / 60000));
+/**
+ * Loads an image once, then quietly swaps to a fresh cache-busted URL only on a
+ * timer (default every 2 min). Crucially, the displayed `<img>` `src` is held
+ * in state and does NOT change when the parent re-renders, so the camera grid
+ * no longer flickers when sibling components update (e.g. radar nowcast,
+ * earthquake polling). The new image is preloaded off-screen and only
+ * promoted once it's fully loaded — eliminating the flash to blank.
+ */
+function RefreshingImage({
+  url,
+  alt,
+  className = "w-full h-full object-cover",
+  intervalMs = 120_000,
+}: {
+  url: string;
+  alt: string;
+  className?: string;
+  intervalMs?: number;
+}) {
+  const initialBust = useRef(Math.floor(Date.now() / intervalMs)).current;
+  const [src, setSrc] = useState(`${url}?t=${initialBust}`);
+
   useEffect(() => {
-    const t = setInterval(() => setBust(Math.floor(Date.now() / 60000)), 60_000);
+    setSrc(`${url}?t=${Math.floor(Date.now() / intervalMs)}`);
+  }, [url, intervalMs]);
+
+  useEffect(() => {
+    const t = setInterval(() => {
+      const nextSrc = `${url}?t=${Math.floor(Date.now() / intervalMs)}`;
+      if (nextSrc === src) return;
+      // Preload to avoid flashing a blank frame during fetch.
+      const img = new Image();
+      img.onload = () => setSrc(nextSrc);
+      img.src = nextSrc;
+    }, intervalMs);
     return () => clearInterval(t);
-  }, []);
-  return (
-    <img
-      src={`${url}?t=${bust}`}
-      alt={alt}
-      className="w-full h-full object-cover"
-      loading="lazy"
-    />
-  );
+  }, [url, intervalMs, src]);
+
+  return <img src={src} alt={alt} className={className} loading="lazy" />;
 }
 
 function CameraMap({

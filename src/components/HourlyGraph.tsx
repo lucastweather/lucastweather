@@ -83,6 +83,8 @@ export default function HourlyGraph({ hours }: { hours: HourlyPoint[] }) {
           />
 
           {hours.map((h, i) => {
+            const showRain = h.precipProb > 40;
+            if (!showRain) return null;
             const ratio = h.precip / maxPrecip;
             const barH = h.precip > 0 ? Math.max(3, ratio * 22) : (h.precipProb / 100) * 6;
             const barW = stepX * 0.55;
@@ -101,7 +103,6 @@ export default function HourlyGraph({ hours }: { hours: HourlyPoint[] }) {
                   transformOrigin: `${i * stepX}px 95px`,
                   animation: `rainGrow 600ms ease-out ${i * 30}ms both`,
                 }}
-                opacity={h.precip > 0 || h.precipProb > 10 ? 1 : 0.25}
               />
             );
           })}
@@ -155,9 +156,11 @@ export default function HourlyGraph({ hours }: { hours: HourlyPoint[] }) {
               {hoverLabel}
             </div>
             <div className="font-mono text-warning">{Math.round(hover.temp)}°F</div>
-            <div className="font-mono text-info">
-              💧 {hover.precipProb}% · {hover.precip.toFixed(2)}"
-            </div>
+            {hover.precipProb > 40 && (
+              <div className="font-mono text-info">
+                💧 {hover.precipProb}% · {hover.precip.toFixed(2)}"
+              </div>
+            )}
           </div>
         )}
       </div>

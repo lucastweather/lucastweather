@@ -38,6 +38,7 @@ import RadarMap from "@/components/RadarMap";
 import EarthquakeMap from "@/components/EarthquakeMap";
 import HourlyForecast from "@/components/HourlyForecast";
 import HourlyGraph from "@/components/HourlyGraph";
+import HurricaneTracker from "@/components/HurricaneTracker";
 
 
 export const Route = createFileRoute("/")({
@@ -291,6 +292,9 @@ function WeatherPage() {
           </span>
         </div>
       </section>
+
+      {/* National Hurricane Center tropical outlook + active storms */}
+      <HurricaneTracker />
 
       {/* Earthquake tracker */}
       <section className="panel p-6">
@@ -578,9 +582,17 @@ function ForecastRow({
         <span className="hidden sm:block text-sm text-muted-foreground">
           {visual.label}
         </span>
-        <span className="text-xs text-info flex items-center gap-2">
-          {day.precipSum > 0 && <span className="font-mono">💧 {day.precipSum.toFixed(2)}"</span>}
-          <span className="font-mono">{day.precipProb ?? 0}%</span>
+        <span className="text-xs text-info flex items-center gap-2 min-w-[64px] justify-end">
+          {(day.precipProb ?? 0) > 40 ? (
+            <>
+              {day.precipSum > 0 && (
+                <span className="font-mono">💧 {day.precipSum.toFixed(2)}"</span>
+              )}
+              <span className="font-mono">{day.precipProb}%</span>
+            </>
+          ) : (
+            <span className="font-mono text-muted-foreground/40">—</span>
+          )}
         </span>
         <span className="font-mono text-sm flex items-center gap-2">
           <span className="font-semibold">{Math.round(day.tMax)}°</span>
