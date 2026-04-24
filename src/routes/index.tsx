@@ -21,12 +21,11 @@ import DailyRecommendations from "@/components/DailyRecommendations";
 import FavoriteCities from "@/components/FavoriteCities";
 import WeatherIcon from "@/components/WeatherIcon";
 import { useCity } from "@/lib/city-store";
-import { parseCalendarDate } from "@/lib/date";
+import { parseCalendarDate, localDateKey, parseLocalDateTime } from "@/lib/date";
 import { useSubscription } from "@/lib/auth-store";
 import {
   fetchWeather,
   fetchEarthquakes,
-  weatherIcon,
   weatherLabel,
   forecastNarrative,
   type CurrentWeather,
@@ -38,6 +37,8 @@ import {
 import RadarMap from "@/components/RadarMap";
 import EarthquakeMap from "@/components/EarthquakeMap";
 import HourlyForecast from "@/components/HourlyForecast";
+import HourlyGraph from "@/components/HourlyGraph";
+
 
 export const Route = createFileRoute("/")({
   head: () => ({
