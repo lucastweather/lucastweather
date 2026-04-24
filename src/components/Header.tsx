@@ -22,7 +22,7 @@ export default function Header() {
     <header className="sticky top-0 z-30 backdrop-blur-xl bg-background/70 border-b border-border">
       <div className="max-w-[1400px] mx-auto px-4 lg:px-6 py-3 flex items-center gap-3 flex-wrap">
         <Link to="/" className="flex items-center gap-2 font-semibold tracking-tight shrink-0">
-          <span className="text-2xl">⛅</span>
+          <span className="text-2xl"></span>
           <span className="text-lg">Lucast Weather</span>
           {subscribed && (
             <span className="chip px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-warning border-warning/30">
