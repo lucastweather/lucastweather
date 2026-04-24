@@ -10,7 +10,7 @@ import {
   ChevronDown,
   AlertCircle,
   Sparkles,
-  Clock,
+  
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { Lock, Crown } from "lucide-react";
