@@ -38,6 +38,7 @@ import RadarMap from "@/components/RadarMap";
 import EarthquakeMap from "@/components/EarthquakeMap";
 import HourlyForecast from "@/components/HourlyForecast";
 import HourlyGraph from "@/components/HourlyGraph";
+import HurricaneTracker from "@/components/HurricaneTracker";
 
 
 export const Route = createFileRoute("/")({
