@@ -37,6 +37,7 @@ import {
 } from "@/lib/weather";
 import RadarMap from "@/components/RadarMap";
 import EarthquakeMap from "@/components/EarthquakeMap";
+import HourlyForecast from "@/components/HourlyForecast";
 
 export const Route = createFileRoute("/")({
   head: () => ({
