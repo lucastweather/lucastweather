@@ -128,7 +128,7 @@ function WeatherPage() {
               <WeatherIcon
                 code={data.current.weatherCode}
                 isDay={data.current.isDay}
-                cloudCover={data.current.cloudCover}
+                cloudCover={satClouds ?? data.current.cloudCover}
                 className="size-20"
               />
             ) : (
@@ -141,11 +141,11 @@ function WeatherPage() {
             </div>
             <div className="text-sm text-muted-foreground mt-1">
               {data
-                  ? `Feels like ${Math.round(data.current.apparent)}°F · ${weatherLabel(
+                ? `Feels like ${Math.round(data.current.apparent)}°F · ${weatherLabel(
                     data.current.weatherCode,
-                    data.current.cloudCover,
+                    satClouds ?? data.current.cloudCover,
                     data.current.isDay,
-                  )}`
+                  )}${satClouds !== null ? " · Sat-synced" : ""}`
                 : loading
                   ? "Loading…"
                   : ""}
