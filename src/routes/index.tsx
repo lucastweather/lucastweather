@@ -243,6 +243,7 @@ function WeatherPage() {
           lon={city.longitude}
           showForecast={true}
           onNowcast={(intensity, hasRain) => setRadarRain({ intensity, hasRain })}
+          onSatelliteClouds={(pct) => setSatClouds(pct)}
         />
       </section>
 
@@ -300,6 +301,9 @@ function WeatherPage() {
 
       {/* National Hurricane Center tropical outlook + active storms */}
       <HurricaneTracker />
+
+      {/* Weather news headlines from NOAA + NWS */}
+      <WeatherNews />
 
       {/* Earthquake tracker */}
       <section className="panel p-6">
