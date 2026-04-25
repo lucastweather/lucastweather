@@ -10,30 +10,75 @@ type ApiResp = {
   satellite: { infrared: Frame[] };
 };
 
+export type RadarLayer = "radar" | "satellite" | "precip" | "clouds" | "temp" | "wind" | "lightning";
+
 type Props = {
   lat: number;
   lon: number;
   /** When false, hide the nowcast (forecast) frames — gates premium feature */
   showForecast?: boolean;
-  /** Notify parent of computed nowcast precipitation (0..1 intensity, mm-ish) */
+  /** Active overlay layer. Defaults to "radar". */
+  layer?: RadarLayer;
+  /** Notify parent of computed nowcast precipitation (0..1 intensity). */
   onNowcast?: (intensity: number, hasRain: boolean) => void;
+  /** Notify parent of satellite-derived cloud cover (0..100 percent). */
+  onSatelliteClouds?: (cloudCoverPct: number) => void;
 };
 
 const RAINVIEWER_API = "https://api.rainviewer.com/public/weather-maps.json";
 
 /**
- * Real animated radar tile layer using RainViewer's free, no-auth API. Tiles
- * are composited over an OpenStreetMap base via Leaflet. Past frames cover
- * roughly 2 hours; nowcast frames cover up to 30 minutes ahead. We also probe
- * the radar tile at the user's location for each nowcast frame so we can tell
- * the parent component "rain is expected" — keeping the MinuteCast and the
- * radar visualization perfectly in sync.
+ * Build a RainViewer tile URL. RainViewer exposes a tile path plus four URL
+ * params:
+ *   /{path}/{size}/{z}/{x}/{y}/{color}/{options}.png
+ *
+ * - color: 0 (B&W), 2 (rainbow universal blue), 3 (cool blues),
+ *   4 (Universal Blue dark), 7 (Rainbow Selex IS), etc.
+ * - options is "smooth_snow" → "1_1" (smoothed, snow as separate color),
+ *   "1_0" (smoothed only), "0_1" (snow only), "0_0" (raw).
+ *
+ * For satellite (infrared), color schemes 0 (B&W IR), 1, 2 are typical.
  */
-export default function RadarMap({ lat, lon, showForecast = false, onNowcast }: Props) {
+function tileUrl(host: string, path: string, layer: RadarLayer): string {
+  switch (layer) {
+    case "satellite":
+    case "clouds":
+      // Satellite IR — black & white cloud tops, good for cloud overlay
+      return `${host}${path}/256/{z}/{x}/{y}/0/0_0.png`;
+    case "precip":
+      // Heavier precipitation color scheme
+      return `${host}${path}/256/{z}/{x}/{y}/4/1_1.png`;
+    case "radar":
+    case "temp":
+    case "wind":
+    case "lightning":
+    default:
+      return `${host}${path}/256/{z}/{x}/{y}/2/1_1.png`;
+  }
+}
+
+/**
+ * Real animated radar/satellite tile layer using RainViewer's free, no-auth
+ * API. Tiles are composited over an OpenStreetMap base via Leaflet. Past
+ * frames cover ~2 hours; nowcast frames cover up to 30 minutes ahead.
+ *
+ * In addition to driving the visual, we sample tiles at the user's location:
+ *  - radar/precip → MinuteCast precipitation sync (`onNowcast`)
+ *  - satellite IR → live cloud-cover percentage for current weather (`onSatelliteClouds`)
+ */
+export default function RadarMap({
+  lat,
+  lon,
+  showForecast = false,
+  layer = "radar",
+  onNowcast,
+  onSatelliteClouds,
+}: Props) {
   const mapEl = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const layersRef = useRef<Record<string, any>>({});
-  const [frames, setFrames] = useState<Frame[]>([]);
+  const [radarFrames, setRadarFrames] = useState<Frame[]>([]);
+  const [satFrames, setSatFrames] = useState<Frame[]>([]);
   const [pastCount, setPastCount] = useState(0);
   const [host, setHost] = useState<string>("");
   const [idx, setIdx] = useState(0);
@@ -41,6 +86,9 @@ export default function RadarMap({ lat, lon, showForecast = false, onNowcast }: 
   const [speed, setSpeed] = useState(1200); // ms per frame; user-adjustable
   const [ready, setReady] = useState(false);
   const [hover, setHover] = useState<{ lat: number; lon: number } | null>(null);
+
+  const useSatellite = layer === "satellite" || layer === "clouds";
+  const frames = useSatellite ? satFrames : radarFrames;
 
   // Init Leaflet (CDN) + map
   useEffect(() => {
@@ -89,71 +137,90 @@ export default function RadarMap({ lat, lon, showForecast = false, onNowcast }: 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lat, lon]);
 
-  // Fetch radar frame index. Premium users get nowcast frames; free users get
-  // observed radar only.
+  // Fetch radar + satellite frame index. Probe both rain (radar nowcast) and
+  // clouds (satellite IR) at the user's location every refresh.
   useEffect(() => {
     fetch(RAINVIEWER_API)
       .then((r) => r.json() as Promise<ApiResp>)
       .then((d) => {
         const past = d.radar.past ?? [];
         const nowcast = d.radar.nowcast ?? [];
+        const sat = d.satellite.infrared ?? [];
         const all = showForecast ? [...past, ...nowcast] : past;
         setHost(d.host);
-        setFrames(all);
+        setRadarFrames(all);
+        setSatFrames(sat);
         setPastCount(past.length);
-        setIdx(Math.max(0, Math.min(past.length - 1, all.length - 1)));
 
         if (showForecast && nowcast.length > 0 && onNowcast) {
-          probeRain(d.host, nowcast[nowcast.length - 1].path, lat, lon)
-            .then((alpha) => {
-              onNowcast(alpha, alpha > 0.05);
-            })
+          probeTile(d.host, nowcast[nowcast.length - 1].path, lat, lon, "radar")
+            .then((alpha) => onNowcast(alpha, alpha > 0.05))
             .catch(() => onNowcast(0, false));
         } else if (onNowcast) {
           onNowcast(0, false);
         }
+
+        if (sat.length > 0 && onSatelliteClouds) {
+          probeTile(d.host, sat[sat.length - 1].path, lat, lon, "satellite")
+            .then((alpha) => onSatelliteClouds(Math.round(alpha * 100)))
+            .catch(() => {});
+        }
       })
       .catch(() => {
-        setFrames([]);
+        setRadarFrames([]);
+        setSatFrames([]);
         onNowcast?.(0, false);
       });
-  }, [showForecast, lat, lon, onNowcast]);
+  }, [showForecast, lat, lon, onNowcast, onSatelliteClouds]);
 
-  // Animate. Hold the latest frame longer so users can see "now" before loop.
+  // Reset frame index when frame source (radar↔satellite) swaps.
+  useEffect(() => {
+    setIdx(Math.max(0, frames.length - 1));
+  }, [useSatellite, frames.length]);
+
+  // Animate.
   useEffect(() => {
     if (!playing || frames.length === 0) return;
     const t = setInterval(() => {
-      setIdx((i) => {
-        const next = (i + 1) % frames.length;
-        return next;
-      });
+      setIdx((i) => (i + 1) % frames.length);
     }, speed);
     return () => clearInterval(t);
   }, [playing, frames.length, speed]);
 
-  // Add/swap radar tile layers
+  // Add/swap tile layers. We always rebuild when layer changes so colour
+  // scheme + tile source match the active overlay.
   useEffect(() => {
     if (!ready || !mapRef.current || frames.length === 0 || !host) return;
     const L = (window as any).L;
     if (!L) return;
     const map = mapRef.current;
 
-    frames.forEach((f) => {
-      if (!layersRef.current[f.path]) {
-        const url = `${host}${f.path}/256/{z}/{x}/{y}/2/1_1.png`;
-        const layer = L.tileLayer(url, { opacity: 0, zIndex: 10, tileSize: 256 });
-        layer.addTo(map);
-        layersRef.current[f.path] = layer;
+    // Remove stale layers from previous mode
+    Object.entries(layersRef.current).forEach(([key, lyr]: [string, any]) => {
+      if (!frames.find((f) => f.path === key) || (lyr._layerKind && lyr._layerKind !== layer)) {
+        map.removeLayer(lyr);
+        delete layersRef.current[key];
       }
     });
-    Object.entries(layersRef.current).forEach(([key, layer]: [string, any]) => {
-      const isCurrent = frames[idx]?.path === key;
-      layer.setOpacity(isCurrent ? 0.75 : 0);
+
+    frames.forEach((f) => {
+      if (!layersRef.current[f.path]) {
+        const url = tileUrl(host, f.path, layer);
+        const lyr = L.tileLayer(url, { opacity: 0, zIndex: 10, tileSize: 256 });
+        lyr._layerKind = layer;
+        lyr.addTo(map);
+        layersRef.current[f.path] = lyr;
+      }
     });
-  }, [idx, frames, host, ready]);
+    Object.entries(layersRef.current).forEach(([key, lyr]: [string, any]) => {
+      const isCurrent = frames[idx]?.path === key;
+      const opacity = useSatellite ? 0.6 : 0.75;
+      lyr.setOpacity(isCurrent ? opacity : 0);
+    });
+  }, [idx, frames, host, ready, layer, useSatellite]);
 
   const current = frames[idx];
-  const isForecast = current ? idx >= pastCount : false;
+  const isForecast = !useSatellite && current ? idx >= pastCount : false;
   const minutesOffset = current
     ? Math.round((current.time * 1000 - Date.now()) / 60000)
     : 0;
@@ -164,6 +231,16 @@ export default function RadarMap({ lat, lon, showForecast = false, onNowcast }: 
       })
     : "—";
 
+  const layerLabel: Record<RadarLayer, string> = {
+    radar: "RADAR",
+    satellite: "SATELLITE IR",
+    clouds: "CLOUD COVER (IR)",
+    precip: "PRECIPITATION",
+    temp: "RADAR",
+    wind: "RADAR",
+    lightning: "RADAR",
+  };
+
   return (
     <div>
       <div className="rounded-xl overflow-hidden border border-border aspect-[16/9] bg-surface-2 relative">
@@ -172,7 +249,7 @@ export default function RadarMap({ lat, lon, showForecast = false, onNowcast }: 
           <span
             className={`size-1.5 rounded-full ${isForecast ? "bg-warning" : "bg-success"} animate-pulse`}
           />
-          {isForecast ? "FORECAST" : "OBSERVED"} · {label}
+          {isForecast ? "FORECAST" : layerLabel[layer]} · {label}
           {minutesOffset !== 0 && (
             <span className="text-muted-foreground">
               ({minutesOffset > 0 ? "+" : ""}
@@ -231,24 +308,29 @@ export default function RadarMap({ lat, lon, showForecast = false, onNowcast }: 
         </div>
       </div>
       <div className="mt-2 flex items-center justify-between text-[10px] font-mono text-muted-foreground">
-        <span>← 2 hr observed</span>
+        <span>
+          {useSatellite ? "← past satellite" : "← 2 hr observed"}
+        </span>
         <span className="text-warning">now</span>
-        <span>+30 min forecast →</span>
+        <span>
+          {useSatellite ? "live IR" : "+30 min forecast →"}
+        </span>
       </div>
     </div>
   );
 }
 
 /**
- * Sample a single RainViewer radar tile at the user's lat/lon to detect
- * whether the radar pixel has any precipitation color. Returns alpha 0..1.
- * Done client-side via canvas. Best-effort — falls back to 0 on CORS issues.
+ * Sample a single RainViewer tile at the user's lat/lon to detect coverage.
+ * Returns alpha 0..1. Used for both rain (radar) and clouds (satellite IR).
+ * Best-effort — falls back to 0 on CORS issues.
  */
-async function probeRain(
+async function probeTile(
   host: string,
   path: string,
   lat: number,
   lon: number,
+  kind: "radar" | "satellite",
 ): Promise<number> {
   const z = 6;
   const tileX = Math.floor(((lon + 180) / 360) * 2 ** z);
@@ -259,7 +341,9 @@ async function probeRain(
       2) *
       2 ** z,
   );
-  const url = `${host}${path}/256/${z}/${tileX}/${tileY}/2/1_1.png`;
+  const color = kind === "satellite" ? 0 : 2;
+  const opts = kind === "satellite" ? "0_0" : "1_1";
+  const url = `${host}${path}/256/${z}/${tileX}/${tileY}/${color}/${opts}.png`;
   return new Promise((resolve) => {
     const img = new Image();
     img.crossOrigin = "anonymous";
@@ -271,13 +355,20 @@ async function probeRain(
         const ctx = canvas.getContext("2d");
         if (!ctx) return resolve(0);
         ctx.drawImage(img, 0, 0);
-        // Sample center of tile
         const data = ctx.getImageData(120, 120, 16, 16).data;
-        let nonZero = 0;
+        let score = 0;
+        let samples = 0;
         for (let i = 0; i < data.length; i += 4) {
-          if (data[i + 3] > 30) nonZero++;
+          samples++;
+          if (kind === "satellite") {
+            // For IR satellite (B&W), brighter pixel = more cloud
+            const lum = (data[i] + data[i + 1] + data[i + 2]) / 3;
+            score += lum / 255;
+          } else if (data[i + 3] > 30) {
+            score += 1;
+          }
         }
-        resolve(nonZero / (data.length / 4));
+        resolve(Math.min(1, score / Math.max(1, samples)));
       } catch {
         resolve(0);
       }
