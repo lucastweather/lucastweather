@@ -269,11 +269,11 @@ function WeatherPage() {
         <p className="text-sm text-muted-foreground mb-4">
           {(() => {
             if (!data) return "Loading minute-by-minute precipitation…";
-            const next = syncedMinutely(data.minutely, radarRain);
+            const next = syncedMinutely(data.minutely, radarRain, currentWeather ?? undefined);
             if (next.length === 0)
               return "Minute-by-minute data unavailable for this region.";
             const total = next.reduce((s, m) => s + m.precip, 0);
-            if (total < 0.001 && !radarRain.hasRain)
+            if (total < 0.001 && !radarRain.hasRain && !isRainWeatherCode(currentWeather?.weatherCode ?? -1))
               return "No precipitation expected in the next 60 minutes.";
             if (radarRain.hasRain && total < 0.001) {
               return "Radar shows precipitation overhead — light, brief sprinkles likely.";
@@ -284,7 +284,7 @@ function WeatherPage() {
             return `Precipitation from minute ${startIdx} to ${endIdx} · ${total.toFixed(2)}" total`;
           })()}
         </p>
-        <MinuteCastChart minutely={syncedMinutely(data?.minutely ?? [], radarRain)} />
+        <MinuteCastChart minutely={syncedMinutely(data?.minutely ?? [], radarRain, currentWeather ?? undefined)} />
         <div className="mt-3 flex gap-3 text-xs text-muted-foreground">
           <span className="flex items-center gap-1">
             <span className="size-2 rounded-sm bg-primary/30" />
@@ -602,12 +602,12 @@ function ForecastRow({
           {visual.label}
         </span>
         <span className="text-xs text-info flex items-center gap-2 min-w-[64px] justify-end">
-          {(day.precipProb ?? 0) > 40 ? (
+          {(day.precipProb ?? 0) > 40 || visual.dayHasRain ? (
             <>
               {day.precipSum > 0 && (
                 <span className="font-mono">💧 {day.precipSum.toFixed(2)}"</span>
               )}
-              <span className="font-mono">{day.precipProb}%</span>
+              <span className="font-mono">{(day.precipProb ?? 0) > 40 ? `${day.precipProb}%` : "Rain"}</span>
             </>
           ) : (
             <span className="font-mono text-muted-foreground/40">—</span>
@@ -644,11 +644,13 @@ function ForecastRow({
 function syncedMinutely(
   base: MinutelyPoint[],
   radar: { intensity: number; hasRain: boolean },
+  current?: CurrentWeather,
 ): MinutelyPoint[] {
-  if (!radar.hasRain || base.length === 0) return base;
+  const currentHasRain = current ? isRainWeatherCode(current.weatherCode) : false;
+  if ((!radar.hasRain && !currentHasRain) || base.length === 0) return base;
   const modelTotal = base.reduce((s, m) => s + m.precip, 0);
   if (modelTotal > 0.01) return base;
-  const baseline = Math.max(0.005, Math.min(0.05, radar.intensity * 0.04));
+  const baseline = Math.max(0.005, Math.min(0.05, (radar.intensity || 0.15) * 0.04));
   return base.map((m, i) => ({
     ...m,
     precip: Math.max(m.precip, baseline * (1 - Math.min(1, i / 60) * 0.5)),
