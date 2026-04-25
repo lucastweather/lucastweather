@@ -119,7 +119,8 @@ export default function RadarMap({
   const [hover, setHover] = useState<{ lat: number; lon: number } | null>(null);
 
   const useSatellite = layer === "satellite" || layer === "clouds";
-  const frames = useSatellite ? satFrames : radarFrames;
+  const useStaticNoaaLayer = layer === "satellite" || layer === "clouds" || layer === "precip";
+  const frames = useStaticNoaaLayer ? [STATIC_FRAME] : radarFrames;
 
   // Init Leaflet (CDN) + map
   useEffect(() => {
@@ -204,10 +205,10 @@ export default function RadarMap({
       });
   }, [showForecast, lat, lon, onNowcast, onSatelliteClouds]);
 
-  // Reset frame index when frame source (radar↔satellite) swaps.
+  // Reset frame index when frame source swaps.
   useEffect(() => {
     setIdx(Math.max(0, frames.length - 1));
-  }, [useSatellite, frames.length]);
+  }, [layer, frames.length]);
 
   // Animate.
   useEffect(() => {
@@ -243,18 +244,17 @@ export default function RadarMap({
     frames.forEach((f) => {
       const key = `${layer}::${f.path}`;
       if (!layersRef.current[key]) {
-        const url = tileUrl(host, f.path, layer);
-        const lyr = L.tileLayer(url, { opacity: 0, zIndex: 10, tileSize: 256 });
+        const lyr = createOverlayLayer(L, host, f, layer);
         lyr.addTo(map);
         layersRef.current[key] = lyr;
       }
     });
     Object.entries(layersRef.current).forEach(([key, lyr]: [string, any]) => {
       const isCurrent = key === `${layer}::${frames[idx]?.path}`;
-      const opacity = useSatellite ? 0.6 : 0.75;
+      const opacity = NOAA_WMS[layer]?.opacity ?? 0.75;
       lyr.setOpacity(isCurrent ? opacity : 0);
     });
-  }, [idx, frames, host, ready, layer, useSatellite]);
+  }, [idx, frames, host, ready, layer]);
 
   const current = frames[idx];
   const isForecast = !useSatellite && current ? idx >= pastCount : false;
