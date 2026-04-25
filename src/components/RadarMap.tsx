@@ -109,7 +109,6 @@ export default function RadarMap({
   const mapRef = useRef<any>(null);
   const layersRef = useRef<Record<string, any>>({});
   const [radarFrames, setRadarFrames] = useState<Frame[]>([]);
-  const [satFrames, setSatFrames] = useState<Frame[]>([]);
   const [pastCount, setPastCount] = useState(0);
   const [host, setHost] = useState<string>("");
   const [idx, setIdx] = useState(0);
@@ -177,21 +176,21 @@ export default function RadarMap({
       .then((d) => {
         const past = d.radar.past ?? [];
         const nowcast = d.radar.nowcast ?? [];
-        const sat = d.satellite.infrared ?? [];
         const all = showForecast ? [...past, ...nowcast] : past;
         setHost(d.host);
         setRadarFrames(all);
-        setSatFrames(sat);
         setPastCount(past.length);
 
-        if (showForecast && nowcast.length > 0 && onNowcast) {
-          probeTile(d.host, nowcast[nowcast.length - 1].path, lat, lon, "radar")
-            .then((alpha) => onNowcast(alpha, alpha > 0.05))
+        const currentRadarFrame = nowcast[nowcast.length - 1] ?? past[past.length - 1];
+        if (currentRadarFrame && onNowcast) {
+          probeTile(d.host, currentRadarFrame.path, lat, lon, "radar")
+            .then((alpha) => onNowcast(alpha, alpha > 0.01))
             .catch(() => onNowcast(0, false));
         } else if (onNowcast) {
           onNowcast(0, false);
         }
 
+        const sat = d.satellite.infrared ?? [];
         if (sat.length > 0 && onSatelliteClouds) {
           probeTile(d.host, sat[sat.length - 1].path, lat, lon, "satellite")
             .then((alpha) => onSatelliteClouds(Math.round(alpha * 100)))
@@ -200,7 +199,6 @@ export default function RadarMap({
       })
       .catch(() => {
         setRadarFrames([]);
-        setSatFrames([]);
         onNowcast?.(0, false);
       });
   }, [showForecast, lat, lon, onNowcast, onSatelliteClouds]);
@@ -236,7 +234,7 @@ export default function RadarMap({
 
   // Add/swap tile layers for the current frame index.
   useEffect(() => {
-    if (!ready || !mapRef.current || frames.length === 0 || !host) return;
+    if (!ready || !mapRef.current || frames.length === 0 || (!host && !useStaticNoaaLayer)) return;
     const L = (window as any).L;
     if (!L) return;
     const map = mapRef.current;
@@ -254,7 +252,7 @@ export default function RadarMap({
       const opacity = NOAA_WMS[layer]?.opacity ?? 0.75;
       lyr.setOpacity(isCurrent ? opacity : 0);
     });
-  }, [idx, frames, host, ready, layer]);
+  }, [idx, frames, host, ready, layer, useStaticNoaaLayer]);
 
   const current = frames[idx];
   const isForecast = !useSatellite && current ? idx >= pastCount : false;
