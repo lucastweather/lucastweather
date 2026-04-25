@@ -476,12 +476,17 @@ function getDailyVisualSummary(day: DailyForecast, hourly: HourlyPoint[]) {
   const sameDay = hourly.filter((hour) => localDateKey(hour.time) === day.date);
   const daytime = sameDay.filter((hour) => hour.isDay);
   const sample = daytime.length > 0 ? daytime : sameDay;
+  const daytimeRainHours = daytime.filter(
+    (hour) => isRainWeatherCode(hour.weatherCode) || (hour.precipProb ?? 0) > 40 || (hour.precip ?? 0) > 0,
+  );
+  const dayHasRain = daytimeRainHours.length > 0;
   if (sample.length === 0) {
     const fallbackCloud = day.weatherCode === 1 ? 30 : day.weatherCode === 2 ? 70 : 100;
     return {
       code: day.weatherCode,
       cloudCover: fallbackCloud,
       label: weatherLabel(day.weatherCode, fallbackCloud, true),
+      dayHasRain: isRainWeatherCode(day.weatherCode) || (day.precipProb ?? 0) > 40 || day.precipSum > 0,
     };
   }
 
@@ -490,22 +495,20 @@ function getDailyVisualSummary(day: DailyForecast, hourly: HourlyPoint[]) {
   );
   const thunderHours = sample.filter((hour) => [95, 96, 99].includes(hour.weatherCode));
   const snowHours = sample.filter((hour) => [71, 73, 75, 77, 85, 86].includes(hour.weatherCode));
-  const rainHours = sample.filter((hour) =>
-    [51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82].includes(hour.weatherCode),
-  );
+  const rainHours = sample.filter((hour) => isRainWeatherCode(hour.weatherCode));
 
   if (thunderHours.length >= Math.ceil(sample.length * 0.35)) {
-    return { code: 95, cloudCover: 100, label: weatherLabel(95, 100, true) };
+    return { code: 95, cloudCover: 100, label: weatherLabel(95, 100, true), dayHasRain: true };
   }
 
   if (snowHours.length >= Math.ceil(sample.length * 0.35)) {
-    return { code: 73, cloudCover: 100, label: weatherLabel(73, 100, true) };
+    return { code: 73, cloudCover: 100, label: weatherLabel(73, 100, true), dayHasRain };
   }
 
-  if (rainHours.length >= Math.ceil(sample.length * 0.45)) {
-    const heavyRain = rainHours.some((hour) => [65, 67, 82].includes(hour.weatherCode));
+  if (dayHasRain || rainHours.length >= Math.ceil(sample.length * 0.45)) {
+    const heavyRain = daytimeRainHours.some((hour) => [65, 67, 82, 95, 96, 99].includes(hour.weatherCode));
     const code = heavyRain ? 65 : 63;
-    return { code, cloudCover: 100, label: weatherLabel(code, 100, true) };
+    return { code, cloudCover: 100, label: weatherLabel(code, 100, true), dayHasRain: true };
   }
 
   const sunnyHours = sample.filter(
@@ -532,19 +535,19 @@ function getDailyVisualSummary(day: DailyForecast, hourly: HourlyPoint[]) {
   const cloudyShare = cloudyHours / sample.length;
 
   if (sunnyShare >= 0.55 && avgCloud <= 35) {
-    return { code: 0, cloudCover: Math.min(avgCloud, 20), label: weatherLabel(0, avgCloud, true) };
+    return { code: 0, cloudCover: Math.min(avgCloud, 20), label: weatherLabel(0, avgCloud, true), dayHasRain };
   }
 
   if (sunnyShare >= 0.5 || (sunnyShare + mostlySunnyShare >= 0.65 && avgCloud <= 50)) {
-    return { code: 1, cloudCover: Math.min(Math.max(avgCloud, 25), 45), label: weatherLabel(1, avgCloud, true) };
+    return { code: 1, cloudCover: Math.min(Math.max(avgCloud, 25), 45), label: weatherLabel(1, avgCloud, true), dayHasRain };
   }
 
   if (partlyShare >= 0.35 || (sunnyShare + partlyShare >= 0.5 && avgCloud <= 65)) {
-    return { code: 2, cloudCover: 50, label: weatherLabel(2, 50, true) };
+    return { code: 2, cloudCover: 50, label: weatherLabel(2, 50, true), dayHasRain };
   }
 
   if (cloudyShare >= 0.35 || avgCloud > 65) {
-    return { code: 2, cloudCover: 80, label: weatherLabel(2, 80, true) };
+    return { code: 2, cloudCover: 80, label: weatherLabel(2, 80, true), dayHasRain };
   }
 
   const fallbackCloud = avgCloud > 65 ? 80 : avgCloud > 40 ? 50 : 30;
@@ -553,6 +556,7 @@ function getDailyVisualSummary(day: DailyForecast, hourly: HourlyPoint[]) {
     code: fallbackCode,
     cloudCover: fallbackCloud,
     label: weatherLabel(fallbackCode, fallbackCloud, true),
+    dayHasRain,
   };
 }
 
