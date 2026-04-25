@@ -39,6 +39,7 @@ import EarthquakeMap from "@/components/EarthquakeMap";
 import HourlyForecast from "@/components/HourlyForecast";
 import HourlyGraph from "@/components/HourlyGraph";
 import HurricaneTracker from "@/components/HurricaneTracker";
+import WeatherNews from "@/components/WeatherNews";
 
 
 export const Route = createFileRoute("/")({
@@ -75,6 +76,10 @@ function WeatherPage() {
     intensity: 0,
     hasRain: false,
   });
+  // Satellite-derived cloud cover (0-100). When available, overrides the
+  // model cloudCover for current-conditions iconography so the icon matches
+  // what's actually overhead right now.
+  const [satClouds, setSatClouds] = useState<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -123,7 +128,7 @@ function WeatherPage() {
               <WeatherIcon
                 code={data.current.weatherCode}
                 isDay={data.current.isDay}
-                cloudCover={data.current.cloudCover}
+                cloudCover={satClouds ?? data.current.cloudCover}
                 className="size-20"
               />
             ) : (
@@ -136,11 +141,11 @@ function WeatherPage() {
             </div>
             <div className="text-sm text-muted-foreground mt-1">
               {data
-                  ? `Feels like ${Math.round(data.current.apparent)}°F · ${weatherLabel(
+                ? `Feels like ${Math.round(data.current.apparent)}°F · ${weatherLabel(
                     data.current.weatherCode,
-                    data.current.cloudCover,
+                    satClouds ?? data.current.cloudCover,
                     data.current.isDay,
-                  )}`
+                  )}${satClouds !== null ? " · Sat-synced" : ""}`
                 : loading
                   ? "Loading…"
                   : ""}
@@ -238,6 +243,7 @@ function WeatherPage() {
           lon={city.longitude}
           showForecast={true}
           onNowcast={(intensity, hasRain) => setRadarRain({ intensity, hasRain })}
+          onSatelliteClouds={(pct) => setSatClouds(pct)}
         />
       </section>
 
@@ -295,6 +301,9 @@ function WeatherPage() {
 
       {/* National Hurricane Center tropical outlook + active storms */}
       <HurricaneTracker />
+
+      {/* Weather news headlines from NOAA + NWS */}
+      <WeatherNews />
 
       {/* Earthquake tracker */}
       <section className="panel p-6">

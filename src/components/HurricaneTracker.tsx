@@ -1,107 +1,49 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Wind, ExternalLink, AlertTriangle } from "lucide-react";
+import {
+  BASIN_LABEL,
+  fetchActiveStorms,
+  outlookExternalUrl,
+  outlookImageUrl,
+  stormBasin,
+  type Basin,
+  type NHCStorm,
+  type OutlookRange,
+} from "@/lib/nhc";
 
 /**
  * National Hurricane Center tropical weather outlook + active storm tracker.
- *
- * Data sources (all public NOAA/NHC endpoints):
- *  - https://www.nhc.noaa.gov/CurrentStorms.json — JSON list of active storms
- *  - https://www.nhc.noaa.gov/xgtwo/two_atl_2d0.png — Atlantic 2-day outlook
- *  - https://www.nhc.noaa.gov/xgtwo/two_atl_7d0.png — Atlantic 7-day outlook
- *  - https://www.nhc.noaa.gov/xgtwo/two_pac_2d0.png — Eastern Pacific 2-day
- *  - https://www.nhc.noaa.gov/xgtwo/two_pac_7d0.png — Eastern Pacific 7-day
- *
- * Forecast cone images for active storms are referenced by NHC ID
- * (e.g. AL052024) at https://www.nhc.noaa.gov/storm_graphics/{basin}/{id}_5day_cone_with_line_and_wind.png
+ * All HTTP + URL building lives in `@/lib/nhc`; this component is purely
+ * presentational. Basin / outlook-range toggles are local state so swapping
+ * them never reloads the active-storms list.
  */
-
-type NHCStorm = {
-  id: string;
-  binNumber: string;
-  name: string;
-  classification: string;
-  intensity: string;
-  pressure: string;
-  latitude: string;
-  longitude: string;
-  latitudeNumeric: number;
-  longitudeNumeric: number;
-  movementDir: number;
-  movementSpeed: number;
-  lastUpdate: string;
-  publicAdvisory?: { advNum: string; issuance: string; url: string };
-  forecastTrack?: { kmzFile?: string; zipFile?: string };
-  forecastConeGraphic?: { url: string };
-  trackAndWatchesWarnings?: { url: string };
-};
-
-type Basin = "atlantic" | "eastpacific" | "centralpacific";
-
-const BASIN_LABEL: Record<Basin, string> = {
-  atlantic: "Atlantic",
-  eastpacific: "E. Pacific",
-  centralpacific: "C. Pacific",
-};
-
-const OUTLOOK_PATH: Record<Basin, string> = {
-  atlantic: "atl",
-  eastpacific: "pac",
-  centralpacific: "cpac",
-};
-
 export default function HurricaneTracker() {
   const [storms, setStorms] = useState<NHCStorm[]>([]);
   const [basin, setBasin] = useState<Basin>("atlantic");
-  const [outlookRange, setOutlookRange] = useState<"2d" | "7d">("7d");
+  const [outlookRange, setOutlookRange] = useState<OutlookRange>("7d");
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [imgBust, setImgBust] = useState(() => Math.floor(Date.now() / 600_000));
 
   useEffect(() => {
-    let cancelled = false;
+    const ctrl = new AbortController();
     setLoading(true);
     setErr(null);
-    fetch("https://www.nhc.noaa.gov/CurrentStorms.json", { cache: "no-store" })
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error("NHC unavailable"))))
-      .then((d) => {
-        if (cancelled) return;
-        const list: NHCStorm[] = Array.isArray(d?.activeStorms)
-          ? d.activeStorms.map((s: any) => ({
-              id: s.id,
-              binNumber: s.binNumber,
-              name: s.name,
-              classification: s.classification,
-              intensity: s.intensity,
-              pressure: s.pressure,
-              latitude: s.latitude,
-              longitude: s.longitude,
-              latitudeNumeric: Number(s.latitudeNumeric ?? 0),
-              longitudeNumeric: Number(s.longitudeNumeric ?? 0),
-              movementDir: Number(s.movementDir ?? 0),
-              movementSpeed: Number(s.movementSpeed ?? 0),
-              lastUpdate: s.lastUpdate,
-              publicAdvisory: s.publicAdvisory,
-              forecastTrack: s.forecastTrack,
-              forecastConeGraphic: s.forecastConeGraphic,
-              trackAndWatchesWarnings: s.trackAndWatchesWarnings,
-            }))
-          : [];
-        setStorms(list);
+    fetchActiveStorms(ctrl.signal)
+      .then(setStorms)
+      .catch((e) => {
+        if (e.name !== "AbortError") setErr(e.message);
       })
-      .catch((e) => !cancelled && setErr(e.message))
-      .finally(() => !cancelled && setLoading(false));
+      .finally(() => setLoading(false));
 
-    // Outlook images update every ~30 minutes; bust cache every 10 min.
     const t = setInterval(() => setImgBust(Math.floor(Date.now() / 600_000)), 600_000);
     return () => {
-      cancelled = true;
+      ctrl.abort();
       clearInterval(t);
     };
   }, []);
 
   const basinStorms = storms.filter((s) => stormBasin(s.id) === basin);
-  const outlookUrl = `https://www.nhc.noaa.gov/xgtwo/two_${OUTLOOK_PATH[basin]}_${outlookRange}0.png?t=${imgBust}`;
-  const outlookExternal = `https://www.nhc.noaa.gov/gtwo.php?basin=${basin}&fdays=${outlookRange === "7d" ? 7 : 2}`;
 
   return (
     <section className="panel p-6">
@@ -113,65 +55,46 @@ export default function HurricaneTracker() {
           </span>
         </h2>
         <div className="flex items-center gap-2 flex-wrap">
-          <div className="chip p-0.5 flex">
+          <div className="chip p-0.5 flex" role="tablist" aria-label="Basin">
             {(Object.keys(BASIN_LABEL) as Basin[]).map((b) => (
               <button
                 key={b}
                 onClick={() => setBasin(b)}
-                className={`px-2.5 py-1 rounded text-xs ${
-                  basin === b ? "bg-primary/20 text-primary" : "text-muted-foreground"
+                aria-pressed={basin === b}
+                className={`px-2.5 py-1 rounded text-xs transition-colors ${
+                  basin === b ? "bg-primary/20 text-primary" : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 {BASIN_LABEL[b]}
               </button>
             ))}
           </div>
-          <div className="chip p-0.5 flex">
-            <button
-              onClick={() => setOutlookRange("2d")}
-              className={`px-2.5 py-1 rounded text-xs ${
-                outlookRange === "2d" ? "bg-primary/20 text-primary" : "text-muted-foreground"
-              }`}
-            >
-              2-Day
-            </button>
-            <button
-              onClick={() => setOutlookRange("7d")}
-              className={`px-2.5 py-1 rounded text-xs ${
-                outlookRange === "7d" ? "bg-primary/20 text-primary" : "text-muted-foreground"
-              }`}
-            >
-              7-Day
-            </button>
+          <div className="chip p-0.5 flex" role="tablist" aria-label="Outlook range">
+            {(["2d", "7d"] as OutlookRange[]).map((r) => (
+              <button
+                key={r}
+                onClick={() => setOutlookRange(r)}
+                aria-pressed={outlookRange === r}
+                className={`px-2.5 py-1 rounded text-xs transition-colors ${
+                  outlookRange === r ? "bg-primary/20 text-primary" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {r === "2d" ? "2-Day" : "7-Day"}
+              </button>
+            ))}
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] gap-4">
-        <figure className="rounded-xl overflow-hidden border border-border bg-white relative">
-          <img
-            src={outlookUrl}
-            alt={`${BASIN_LABEL[basin]} ${outlookRange === "7d" ? "7-day" : "2-day"} tropical weather outlook`}
-            className="w-full h-auto block"
-            loading="lazy"
-          />
-          <a
-            href={outlookExternal}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="absolute top-2 right-2 chip px-2 py-1 text-[10px] font-mono bg-background/80 hover:bg-background flex items-center gap-1"
-          >
-            NHC <ExternalLink className="size-3" />
-          </a>
-          <figcaption className="px-3 py-2 text-[11px] font-mono text-muted-foreground bg-surface-2 border-t border-border">
-            {BASIN_LABEL[basin]} · {outlookRange === "7d" ? "7-Day" : "2-Day"} Tropical Weather Outlook
-            · NOAA / National Hurricane Center
-          </figcaption>
-        </figure>
+        <OutlookFigure basin={basin} range={outlookRange} cacheBust={imgBust} />
 
         <div className="space-y-3">
           <h3 className="text-sm font-semibold flex items-center gap-2">
-            Active Storms <span className="text-xs font-mono text-muted-foreground">({basinStorms.length})</span>
+            Active Storms{" "}
+            <span className="text-xs font-mono text-muted-foreground">
+              ({basinStorms.length})
+            </span>
           </h3>
           {loading && (
             <div className="text-xs text-muted-foreground">Loading active storms…</div>
@@ -183,8 +106,8 @@ export default function HurricaneTracker() {
           )}
           {!loading && !err && basinStorms.length === 0 && (
             <div className="chip px-3 py-3 text-xs text-muted-foreground">
-              No active tropical cyclones in the {BASIN_LABEL[basin]} basin. Check the outlook
-              for areas of disturbed weather being monitored for development.
+              No active tropical cyclones in the {BASIN_LABEL[basin]} basin. Check the
+              outlook for areas of disturbed weather being monitored for development.
             </div>
           )}
           <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
@@ -198,6 +121,57 @@ export default function HurricaneTracker() {
   );
 }
 
+/**
+ * Preloads the new outlook image off-screen and only swaps the visible <img>
+ * once it's ready, so toggling basin/range doesn't flash a blank panel.
+ */
+function OutlookFigure({
+  basin,
+  range,
+  cacheBust,
+}: {
+  basin: Basin;
+  range: OutlookRange;
+  cacheBust: number;
+}) {
+  const targetUrl = outlookImageUrl(basin, range, cacheBust);
+  const [src, setSrc] = useState(targetUrl);
+  const lastRequested = useRef(targetUrl);
+
+  useEffect(() => {
+    if (targetUrl === lastRequested.current && targetUrl === src) return;
+    lastRequested.current = targetUrl;
+    const img = new Image();
+    img.onload = () => {
+      if (lastRequested.current === targetUrl) setSrc(targetUrl);
+    };
+    img.src = targetUrl;
+  }, [targetUrl, src]);
+
+  return (
+    <figure className="rounded-xl overflow-hidden border border-border bg-white relative">
+      <img
+        src={src}
+        alt={`${BASIN_LABEL[basin]} ${range === "7d" ? "7-day" : "2-day"} tropical weather outlook`}
+        className="w-full h-auto block transition-opacity duration-200"
+        loading="lazy"
+      />
+      <a
+        href={outlookExternalUrl(basin, range)}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="absolute top-2 right-2 chip px-2 py-1 text-[10px] font-mono bg-background/80 hover:bg-background flex items-center gap-1"
+      >
+        NHC <ExternalLink className="size-3" />
+      </a>
+      <figcaption className="px-3 py-2 text-[11px] font-mono text-muted-foreground bg-surface-2 border-t border-border">
+        {BASIN_LABEL[basin]} · {range === "7d" ? "7-Day" : "2-Day"} Tropical Weather
+        Outlook · NOAA / National Hurricane Center
+      </figcaption>
+    </figure>
+  );
+}
+
 function StormCard({ storm }: { storm: NHCStorm }) {
   const wind = Number(storm.intensity);
   const cat = saffirSimpson(wind);
@@ -207,9 +181,7 @@ function StormCard({ storm }: { storm: NHCStorm }) {
       : cat.tier >= 1
         ? "border-warning/50 text-warning"
         : "border-info/40 text-info";
-  const coneUrl = storm.forecastConeGraphic?.url
-    ? storm.forecastConeGraphic.url
-    : null;
+  const coneUrl = storm.forecastConeGraphic?.url ?? null;
 
   return (
     <details className="chip group" open>
@@ -276,13 +248,6 @@ function StormCard({ storm }: { storm: NHCStorm }) {
   );
 }
 
-function stormBasin(id: string): Basin {
-  if (id.startsWith("AL")) return "atlantic";
-  if (id.startsWith("EP")) return "eastpacific";
-  if (id.startsWith("CP")) return "centralpacific";
-  return "atlantic";
-}
-
 function saffirSimpson(wind: number): { label: string; tier: number } {
   if (!wind || Number.isNaN(wind)) return { label: "TD", tier: 0 };
   if (wind < 39) return { label: "TD", tier: 0 };
@@ -296,6 +261,6 @@ function saffirSimpson(wind: number): { label: string; tier: number } {
 
 function bearingLabel(deg: number): string {
   if (!deg && deg !== 0) return "—";
-  const dirs = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
-  return dirs[Math.round(((deg % 360) / 22.5)) % 16];
+  const dirs = ["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"];
+  return dirs[Math.round((deg % 360) / 22.5) % 16];
 }

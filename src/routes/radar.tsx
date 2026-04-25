@@ -92,6 +92,7 @@ function RadarPage() {
           lat={city.latitude}
           lon={city.longitude}
           showForecast={true}
+          layer={layer}
         />
 
         {layer === "lightning" && subscribed && (
