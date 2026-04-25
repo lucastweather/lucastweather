@@ -26,6 +26,24 @@ type Props = {
 };
 
 const RAINVIEWER_API = "https://api.rainviewer.com/public/weather-maps.json";
+const STATIC_FRAME: Frame = { time: 0, path: "static-live-layer" };
+const NOAA_WMS: Partial<Record<RadarLayer, { url: string; layers: string; opacity: number }>> = {
+  satellite: {
+    url: "https://nowcoast.noaa.gov/geoserver/observations/satellite/wms",
+    layers: "global_visible_imagery_mosaic",
+    opacity: 0.78,
+  },
+  clouds: {
+    url: "https://nowcoast.noaa.gov/geoserver/observations/satellite/wms",
+    layers: "global_longwave_imagery_mosaic",
+    opacity: 0.72,
+  },
+  precip: {
+    url: "https://mapservices.weather.noaa.gov/raster/services/obs/mrms_qpe/ImageServer/WMSServer",
+    layers: "mrms_qpe:rft_1hr",
+    opacity: 0.72,
+  },
+};
 
 /**
  * Build a RainViewer tile URL. RainViewer exposes a tile path plus four URL
@@ -41,10 +59,6 @@ const RAINVIEWER_API = "https://api.rainviewer.com/public/weather-maps.json";
  */
 function tileUrl(host: string, path: string, layer: RadarLayer): string {
   switch (layer) {
-    case "satellite":
-    case "clouds":
-      // Satellite IR — black & white cloud tops, good for cloud overlay
-      return `${host}${path}/256/{z}/{x}/{y}/0/0_0.png`;
     case "precip":
       // Heavier precipitation color scheme
       return `${host}${path}/256/{z}/{x}/{y}/4/1_1.png`;
@@ -55,6 +69,23 @@ function tileUrl(host: string, path: string, layer: RadarLayer): string {
     default:
       return `${host}${path}/256/{z}/{x}/{y}/2/1_1.png`;
   }
+}
+
+function createOverlayLayer(L: any, host: string, frame: Frame, layer: RadarLayer) {
+  const wms = NOAA_WMS[layer];
+  if (wms) {
+    return L.tileLayer.wms(wms.url, {
+      layers: wms.layers,
+      format: "image/png",
+      transparent: true,
+      opacity: 0,
+      zIndex: 10,
+      version: "1.3.0",
+      attribution: "NOAA/NWS",
+    });
+  }
+
+  return L.tileLayer(tileUrl(host, frame.path, layer), { opacity: 0, zIndex: 10, tileSize: 256 });
 }
 
 /**
