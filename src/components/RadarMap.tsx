@@ -187,33 +187,39 @@ export default function RadarMap({
     return () => clearInterval(t);
   }, [playing, frames.length, speed]);
 
-  // Add/swap tile layers. We always rebuild when layer changes so colour
-  // scheme + tile source match the active overlay.
+  // Wipe all tile layers when the active overlay (or frame source) changes,
+  // so the next effect rebuilds them with the correct colour scheme + path.
+  useEffect(() => {
+    if (!mapRef.current) return;
+    const map = mapRef.current;
+    Object.values(layersRef.current).forEach((lyr: any) => {
+      try {
+        map.removeLayer(lyr);
+      } catch {
+        /* ignore */
+      }
+    });
+    layersRef.current = {};
+  }, [layer, useSatellite]);
+
+  // Add/swap tile layers for the current frame index.
   useEffect(() => {
     if (!ready || !mapRef.current || frames.length === 0 || !host) return;
     const L = (window as any).L;
     if (!L) return;
     const map = mapRef.current;
 
-    // Remove stale layers from previous mode
-    Object.entries(layersRef.current).forEach(([key, lyr]: [string, any]) => {
-      if (!frames.find((f) => f.path === key) || (lyr._layerKind && lyr._layerKind !== layer)) {
-        map.removeLayer(lyr);
-        delete layersRef.current[key];
-      }
-    });
-
     frames.forEach((f) => {
-      if (!layersRef.current[f.path]) {
+      const key = `${layer}::${f.path}`;
+      if (!layersRef.current[key]) {
         const url = tileUrl(host, f.path, layer);
         const lyr = L.tileLayer(url, { opacity: 0, zIndex: 10, tileSize: 256 });
-        lyr._layerKind = layer;
         lyr.addTo(map);
-        layersRef.current[f.path] = lyr;
+        layersRef.current[key] = lyr;
       }
     });
     Object.entries(layersRef.current).forEach(([key, lyr]: [string, any]) => {
-      const isCurrent = frames[idx]?.path === key;
+      const isCurrent = key === `${layer}::${frames[idx]?.path}`;
       const opacity = useSatellite ? 0.6 : 0.75;
       lyr.setOpacity(isCurrent ? opacity : 0);
     });
