@@ -28,6 +28,8 @@ import {
   fetchEarthquakes,
   weatherLabel,
   forecastNarrative,
+  isRainWeatherCode,
+  syncCurrentWeather,
   type CurrentWeather,
   type DailyForecast,
   type HourlyPoint,
@@ -101,6 +103,9 @@ function WeatherPage() {
   }, []);
 
   const filteredQuakes = quakes.filter((q) => q.mag >= magFilter).slice(0, 10);
+  const currentWeather = data
+    ? syncCurrentWeather(data.current, radarRain, satClouds)
+    : null;
 
   return (
     <PageShell>
@@ -126,9 +131,9 @@ function WeatherPage() {
           <div className="leading-none">
             {data ? (
               <WeatherIcon
-                code={data.current.weatherCode}
-                isDay={data.current.isDay}
-                cloudCover={satClouds ?? data.current.cloudCover}
+                code={currentWeather!.weatherCode}
+                isDay={currentWeather!.isDay}
+                cloudCover={currentWeather!.cloudCover}
                 className="size-20"
               />
             ) : (
@@ -141,11 +146,11 @@ function WeatherPage() {
             </div>
             <div className="text-sm text-muted-foreground mt-1">
               {data
-                ? `Feels like ${Math.round(data.current.apparent)}°F · ${weatherLabel(
-                    data.current.weatherCode,
-                    satClouds ?? data.current.cloudCover,
-                    data.current.isDay,
-                  )}${satClouds !== null ? " · Sat-synced" : ""}`
+                ? `Feels like ${Math.round(currentWeather!.apparent)}°F · ${weatherLabel(
+                    currentWeather!.weatherCode,
+                    currentWeather!.cloudCover,
+                    currentWeather!.isDay,
+                  )}${radarRain.hasRain ? " · Radar-synced" : satClouds !== null ? " · Sat-synced" : ""}`
                 : loading
                   ? "Loading…"
                   : ""}
@@ -186,6 +191,7 @@ function WeatherPage() {
         hourly={data?.hourly ?? []}
         loading={!data}
         utcOffsetSeconds={data?.utcOffsetSeconds ?? 0}
+          current={currentWeather ?? undefined}
       />
 
       {/* 7-day forecast (free) + 16-day teaser (premium) */}
@@ -263,11 +269,11 @@ function WeatherPage() {
         <p className="text-sm text-muted-foreground mb-4">
           {(() => {
             if (!data) return "Loading minute-by-minute precipitation…";
-            const next = syncedMinutely(data.minutely, radarRain);
+            const next = syncedMinutely(data.minutely, radarRain, currentWeather ?? undefined);
             if (next.length === 0)
               return "Minute-by-minute data unavailable for this region.";
             const total = next.reduce((s, m) => s + m.precip, 0);
-            if (total < 0.001 && !radarRain.hasRain)
+            if (total < 0.001 && !radarRain.hasRain && !isRainWeatherCode(currentWeather?.weatherCode ?? -1))
               return "No precipitation expected in the next 60 minutes.";
             if (radarRain.hasRain && total < 0.001) {
               return "Radar shows precipitation overhead — light, brief sprinkles likely.";
@@ -278,7 +284,7 @@ function WeatherPage() {
             return `Precipitation from minute ${startIdx} to ${endIdx} · ${total.toFixed(2)}" total`;
           })()}
         </p>
-        <MinuteCastChart minutely={syncedMinutely(data?.minutely ?? [], radarRain)} />
+        <MinuteCastChart minutely={syncedMinutely(data?.minutely ?? [], radarRain, currentWeather ?? undefined)} />
         <div className="mt-3 flex gap-3 text-xs text-muted-foreground">
           <span className="flex items-center gap-1">
             <span className="size-2 rounded-sm bg-primary/30" />
@@ -470,12 +476,17 @@ function getDailyVisualSummary(day: DailyForecast, hourly: HourlyPoint[]) {
   const sameDay = hourly.filter((hour) => localDateKey(hour.time) === day.date);
   const daytime = sameDay.filter((hour) => hour.isDay);
   const sample = daytime.length > 0 ? daytime : sameDay;
+  const daytimeRainHours = daytime.filter(
+    (hour) => isRainWeatherCode(hour.weatherCode) || (hour.precipProb ?? 0) > 40 || (hour.precip ?? 0) > 0,
+  );
+  const dayHasRain = daytimeRainHours.length > 0;
   if (sample.length === 0) {
     const fallbackCloud = day.weatherCode === 1 ? 30 : day.weatherCode === 2 ? 70 : 100;
     return {
       code: day.weatherCode,
       cloudCover: fallbackCloud,
       label: weatherLabel(day.weatherCode, fallbackCloud, true),
+      dayHasRain: isRainWeatherCode(day.weatherCode) || (day.precipProb ?? 0) > 40 || day.precipSum > 0,
     };
   }
 
@@ -484,22 +495,20 @@ function getDailyVisualSummary(day: DailyForecast, hourly: HourlyPoint[]) {
   );
   const thunderHours = sample.filter((hour) => [95, 96, 99].includes(hour.weatherCode));
   const snowHours = sample.filter((hour) => [71, 73, 75, 77, 85, 86].includes(hour.weatherCode));
-  const rainHours = sample.filter((hour) =>
-    [51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82].includes(hour.weatherCode),
-  );
+  const rainHours = sample.filter((hour) => isRainWeatherCode(hour.weatherCode));
 
   if (thunderHours.length >= Math.ceil(sample.length * 0.35)) {
-    return { code: 95, cloudCover: 100, label: weatherLabel(95, 100, true) };
+    return { code: 95, cloudCover: 100, label: weatherLabel(95, 100, true), dayHasRain: true };
   }
 
   if (snowHours.length >= Math.ceil(sample.length * 0.35)) {
-    return { code: 73, cloudCover: 100, label: weatherLabel(73, 100, true) };
+    return { code: 73, cloudCover: 100, label: weatherLabel(73, 100, true), dayHasRain };
   }
 
-  if (rainHours.length >= Math.ceil(sample.length * 0.45)) {
-    const heavyRain = rainHours.some((hour) => [65, 67, 82].includes(hour.weatherCode));
+  if (dayHasRain || rainHours.length >= Math.ceil(sample.length * 0.45)) {
+    const heavyRain = daytimeRainHours.some((hour) => [65, 67, 82, 95, 96, 99].includes(hour.weatherCode));
     const code = heavyRain ? 65 : 63;
-    return { code, cloudCover: 100, label: weatherLabel(code, 100, true) };
+    return { code, cloudCover: 100, label: weatherLabel(code, 100, true), dayHasRain: true };
   }
 
   const sunnyHours = sample.filter(
@@ -526,19 +535,19 @@ function getDailyVisualSummary(day: DailyForecast, hourly: HourlyPoint[]) {
   const cloudyShare = cloudyHours / sample.length;
 
   if (sunnyShare >= 0.55 && avgCloud <= 35) {
-    return { code: 0, cloudCover: Math.min(avgCloud, 20), label: weatherLabel(0, avgCloud, true) };
+    return { code: 0, cloudCover: Math.min(avgCloud, 20), label: weatherLabel(0, avgCloud, true), dayHasRain };
   }
 
   if (sunnyShare >= 0.5 || (sunnyShare + mostlySunnyShare >= 0.65 && avgCloud <= 50)) {
-    return { code: 1, cloudCover: Math.min(Math.max(avgCloud, 25), 45), label: weatherLabel(1, avgCloud, true) };
+    return { code: 1, cloudCover: Math.min(Math.max(avgCloud, 25), 45), label: weatherLabel(1, avgCloud, true), dayHasRain };
   }
 
   if (partlyShare >= 0.35 || (sunnyShare + partlyShare >= 0.5 && avgCloud <= 65)) {
-    return { code: 2, cloudCover: 50, label: weatherLabel(2, 50, true) };
+    return { code: 2, cloudCover: 50, label: weatherLabel(2, 50, true), dayHasRain };
   }
 
   if (cloudyShare >= 0.35 || avgCloud > 65) {
-    return { code: 2, cloudCover: 80, label: weatherLabel(2, 80, true) };
+    return { code: 2, cloudCover: 80, label: weatherLabel(2, 80, true), dayHasRain };
   }
 
   const fallbackCloud = avgCloud > 65 ? 80 : avgCloud > 40 ? 50 : 30;
@@ -547,6 +556,7 @@ function getDailyVisualSummary(day: DailyForecast, hourly: HourlyPoint[]) {
     code: fallbackCode,
     cloudCover: fallbackCloud,
     label: weatherLabel(fallbackCode, fallbackCloud, true),
+    dayHasRain,
   };
 }
 
@@ -592,12 +602,12 @@ function ForecastRow({
           {visual.label}
         </span>
         <span className="text-xs text-info flex items-center gap-2 min-w-[64px] justify-end">
-          {(day.precipProb ?? 0) > 40 ? (
+          {(day.precipProb ?? 0) > 40 || visual.dayHasRain ? (
             <>
               {day.precipSum > 0 && (
                 <span className="font-mono">💧 {day.precipSum.toFixed(2)}"</span>
               )}
-              <span className="font-mono">{day.precipProb}%</span>
+              <span className="font-mono">{(day.precipProb ?? 0) > 40 ? `${day.precipProb}%` : "Rain"}</span>
             </>
           ) : (
             <span className="font-mono text-muted-foreground/40">—</span>
@@ -634,11 +644,13 @@ function ForecastRow({
 function syncedMinutely(
   base: MinutelyPoint[],
   radar: { intensity: number; hasRain: boolean },
+  current?: CurrentWeather,
 ): MinutelyPoint[] {
-  if (!radar.hasRain || base.length === 0) return base;
+  const currentHasRain = current ? isRainWeatherCode(current.weatherCode) : false;
+  if ((!radar.hasRain && !currentHasRain) || base.length === 0) return base;
   const modelTotal = base.reduce((s, m) => s + m.precip, 0);
   if (modelTotal > 0.01) return base;
-  const baseline = Math.max(0.005, Math.min(0.05, radar.intensity * 0.04));
+  const baseline = Math.max(0.005, Math.min(0.05, (radar.intensity || 0.15) * 0.04));
   return base.map((m, i) => ({
     ...m,
     precip: Math.max(m.precip, baseline * (1 - Math.min(1, i / 60) * 0.5)),

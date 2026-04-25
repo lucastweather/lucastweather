@@ -53,6 +53,36 @@ export type MinutelyPoint = { time: string; precip: number; precipProb: number }
 
 const API = "https://api.open-meteo.com/v1/forecast";
 const GEO = "https://geocoding-api.open-meteo.com/v1/search";
+export const RAIN_WEATHER_CODES = [51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82, 95, 96, 99];
+
+export function isRainWeatherCode(code: number): boolean {
+  return RAIN_WEATHER_CODES.includes(code);
+}
+
+export function rainCodeFromIntensity(intensity: number): number {
+  if (intensity >= 0.65) return 65;
+  if (intensity >= 0.25) return 63;
+  return 61;
+}
+
+export function syncCurrentWeather(
+  current: CurrentWeather,
+  radar: { intensity: number; hasRain: boolean },
+  satelliteCloudCover: number | null,
+): CurrentWeather {
+  if (radar.hasRain) {
+    return {
+      ...current,
+      weatherCode: rainCodeFromIntensity(radar.intensity),
+      cloudCover: 100,
+    };
+  }
+
+  return {
+    ...current,
+    cloudCover: satelliteCloudCover ?? current.cloudCover,
+  };
+}
 
 export async function geocode(query: string): Promise<GeoResult[]> {
   const url = `${GEO}?name=${encodeURIComponent(query)}&count=8&language=en&format=json`;
@@ -192,6 +222,8 @@ export function forecastNarrative(
     precip = ` Periods of rain likely (${d.precipSum.toFixed(2)}").`;
   } else if ((d.precipProb ?? 0) >= 40) {
     precip = ` Scattered showers possible (${d.precipProb}% chance).`;
+  } else if (isRainWeatherCode(code)) {
+    precip = ` Rain is possible during the day.`;
   } else if ((d.precipProb ?? 0) >= 15) {
     precip = ` Slight chance of a passing shower.`;
   } else {

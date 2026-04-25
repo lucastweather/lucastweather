@@ -26,6 +26,25 @@ type Props = {
 };
 
 const RAINVIEWER_API = "https://api.rainviewer.com/public/weather-maps.json";
+const STATIC_FRAME: Frame = { time: 0, path: "static-live-layer" };
+const STATIC_FRAMES: Frame[] = [STATIC_FRAME];
+const NOAA_WMS: Partial<Record<RadarLayer, { url: string; layers: string; opacity: number }>> = {
+  satellite: {
+    url: "https://nowcoast.noaa.gov/geoserver/observations/satellite/wms",
+    layers: "global_visible_imagery_mosaic",
+    opacity: 0.78,
+  },
+  clouds: {
+    url: "https://nowcoast.noaa.gov/geoserver/observations/satellite/wms",
+    layers: "global_longwave_imagery_mosaic",
+    opacity: 0.72,
+  },
+  precip: {
+    url: "https://mapservices.weather.noaa.gov/raster/services/obs/mrms_qpe/ImageServer/WMSServer",
+    layers: "mrms_qpe:rft_1hr",
+    opacity: 0.72,
+  },
+};
 
 /**
  * Build a RainViewer tile URL. RainViewer exposes a tile path plus four URL
@@ -41,10 +60,6 @@ const RAINVIEWER_API = "https://api.rainviewer.com/public/weather-maps.json";
  */
 function tileUrl(host: string, path: string, layer: RadarLayer): string {
   switch (layer) {
-    case "satellite":
-    case "clouds":
-      // Satellite IR — black & white cloud tops, good for cloud overlay
-      return `${host}${path}/256/{z}/{x}/{y}/0/0_0.png`;
     case "precip":
       // Heavier precipitation color scheme
       return `${host}${path}/256/{z}/{x}/{y}/4/1_1.png`;
@@ -55,6 +70,23 @@ function tileUrl(host: string, path: string, layer: RadarLayer): string {
     default:
       return `${host}${path}/256/{z}/{x}/{y}/2/1_1.png`;
   }
+}
+
+function createOverlayLayer(L: any, host: string, frame: Frame, layer: RadarLayer) {
+  const wms = NOAA_WMS[layer];
+  if (wms) {
+    return L.tileLayer.wms(wms.url, {
+      layers: wms.layers,
+      format: "image/png",
+      transparent: true,
+      opacity: 0,
+      zIndex: 10,
+      version: "1.1.1",
+      attribution: "NOAA/NWS",
+    });
+  }
+
+  return L.tileLayer(tileUrl(host, frame.path, layer), { opacity: 0, zIndex: 10, tileSize: 256 });
 }
 
 /**
@@ -78,7 +110,6 @@ export default function RadarMap({
   const mapRef = useRef<any>(null);
   const layersRef = useRef<Record<string, any>>({});
   const [radarFrames, setRadarFrames] = useState<Frame[]>([]);
-  const [satFrames, setSatFrames] = useState<Frame[]>([]);
   const [pastCount, setPastCount] = useState(0);
   const [host, setHost] = useState<string>("");
   const [idx, setIdx] = useState(0);
@@ -88,7 +119,8 @@ export default function RadarMap({
   const [hover, setHover] = useState<{ lat: number; lon: number } | null>(null);
 
   const useSatellite = layer === "satellite" || layer === "clouds";
-  const frames = useSatellite ? satFrames : radarFrames;
+  const useStaticNoaaLayer = layer === "satellite" || layer === "clouds" || layer === "precip";
+  const frames = useStaticNoaaLayer ? STATIC_FRAMES : radarFrames;
 
   // Init Leaflet (CDN) + map
   useEffect(() => {
@@ -145,21 +177,21 @@ export default function RadarMap({
       .then((d) => {
         const past = d.radar.past ?? [];
         const nowcast = d.radar.nowcast ?? [];
-        const sat = d.satellite.infrared ?? [];
         const all = showForecast ? [...past, ...nowcast] : past;
         setHost(d.host);
         setRadarFrames(all);
-        setSatFrames(sat);
         setPastCount(past.length);
 
-        if (showForecast && nowcast.length > 0 && onNowcast) {
-          probeTile(d.host, nowcast[nowcast.length - 1].path, lat, lon, "radar")
-            .then((alpha) => onNowcast(alpha, alpha > 0.05))
+        const currentRadarFrame = nowcast[nowcast.length - 1] ?? past[past.length - 1];
+        if (currentRadarFrame && onNowcast) {
+          probeTile(d.host, currentRadarFrame.path, lat, lon, "radar")
+            .then((alpha) => onNowcast(alpha, alpha > 0.01))
             .catch(() => onNowcast(0, false));
         } else if (onNowcast) {
           onNowcast(0, false);
         }
 
+        const sat = d.satellite.infrared ?? [];
         if (sat.length > 0 && onSatelliteClouds) {
           probeTile(d.host, sat[sat.length - 1].path, lat, lon, "satellite")
             .then((alpha) => onSatelliteClouds(Math.round(alpha * 100)))
@@ -168,15 +200,14 @@ export default function RadarMap({
       })
       .catch(() => {
         setRadarFrames([]);
-        setSatFrames([]);
         onNowcast?.(0, false);
       });
   }, [showForecast, lat, lon, onNowcast, onSatelliteClouds]);
 
-  // Reset frame index when frame source (radar↔satellite) swaps.
+  // Reset frame index when frame source swaps.
   useEffect(() => {
     setIdx(Math.max(0, frames.length - 1));
-  }, [useSatellite, frames.length]);
+  }, [layer, frames.length]);
 
   // Animate.
   useEffect(() => {
@@ -204,7 +235,7 @@ export default function RadarMap({
 
   // Add/swap tile layers for the current frame index.
   useEffect(() => {
-    if (!ready || !mapRef.current || frames.length === 0 || !host) return;
+    if (!ready || !mapRef.current || frames.length === 0 || (!host && !useStaticNoaaLayer)) return;
     const L = (window as any).L;
     if (!L) return;
     const map = mapRef.current;
@@ -212,18 +243,17 @@ export default function RadarMap({
     frames.forEach((f) => {
       const key = `${layer}::${f.path}`;
       if (!layersRef.current[key]) {
-        const url = tileUrl(host, f.path, layer);
-        const lyr = L.tileLayer(url, { opacity: 0, zIndex: 10, tileSize: 256 });
+        const lyr = createOverlayLayer(L, host, f, layer);
         lyr.addTo(map);
         layersRef.current[key] = lyr;
       }
     });
     Object.entries(layersRef.current).forEach(([key, lyr]: [string, any]) => {
       const isCurrent = key === `${layer}::${frames[idx]?.path}`;
-      const opacity = useSatellite ? 0.6 : 0.75;
+      const opacity = NOAA_WMS[layer]?.opacity ?? 0.75;
       lyr.setOpacity(isCurrent ? opacity : 0);
     });
-  }, [idx, frames, host, ready, layer, useSatellite]);
+  }, [idx, frames, host, ready, layer, useStaticNoaaLayer]);
 
   const current = frames[idx];
   const isForecast = !useSatellite && current ? idx >= pastCount : false;
