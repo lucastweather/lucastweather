@@ -27,6 +27,7 @@ type Props = {
 
 const RAINVIEWER_API = "https://api.rainviewer.com/public/weather-maps.json";
 const STATIC_FRAME: Frame = { time: 0, path: "static-live-layer" };
+const STATIC_FRAMES: Frame[] = [STATIC_FRAME];
 const NOAA_WMS: Partial<Record<RadarLayer, { url: string; layers: string; opacity: number }>> = {
   satellite: {
     url: "https://nowcoast.noaa.gov/geoserver/observations/satellite/wms",
@@ -80,7 +81,7 @@ function createOverlayLayer(L: any, host: string, frame: Frame, layer: RadarLaye
       transparent: true,
       opacity: 0,
       zIndex: 10,
-      version: "1.3.0",
+      version: "1.1.1",
       attribution: "NOAA/NWS",
     });
   }
@@ -119,7 +120,7 @@ export default function RadarMap({
 
   const useSatellite = layer === "satellite" || layer === "clouds";
   const useStaticNoaaLayer = layer === "satellite" || layer === "clouds" || layer === "precip";
-  const frames = useStaticNoaaLayer ? [STATIC_FRAME] : radarFrames;
+  const frames = useStaticNoaaLayer ? STATIC_FRAMES : radarFrames;
 
   // Init Leaflet (CDN) + map
   useEffect(() => {
