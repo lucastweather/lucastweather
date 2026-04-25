@@ -28,6 +28,8 @@ import {
   fetchEarthquakes,
   weatherLabel,
   forecastNarrative,
+  isRainWeatherCode,
+  syncCurrentWeather,
   type CurrentWeather,
   type DailyForecast,
   type HourlyPoint,
@@ -101,6 +103,9 @@ function WeatherPage() {
   }, []);
 
   const filteredQuakes = quakes.filter((q) => q.mag >= magFilter).slice(0, 10);
+  const currentWeather = data
+    ? syncCurrentWeather(data.current, radarRain, satClouds)
+    : null;
 
   return (
     <PageShell>
@@ -126,9 +131,9 @@ function WeatherPage() {
           <div className="leading-none">
             {data ? (
               <WeatherIcon
-                code={data.current.weatherCode}
-                isDay={data.current.isDay}
-                cloudCover={satClouds ?? data.current.cloudCover}
+                code={currentWeather!.weatherCode}
+                isDay={currentWeather!.isDay}
+                cloudCover={currentWeather!.cloudCover}
                 className="size-20"
               />
             ) : (
@@ -141,11 +146,11 @@ function WeatherPage() {
             </div>
             <div className="text-sm text-muted-foreground mt-1">
               {data
-                ? `Feels like ${Math.round(data.current.apparent)}°F · ${weatherLabel(
-                    data.current.weatherCode,
-                    satClouds ?? data.current.cloudCover,
-                    data.current.isDay,
-                  )}${satClouds !== null ? " · Sat-synced" : ""}`
+                ? `Feels like ${Math.round(currentWeather!.apparent)}°F · ${weatherLabel(
+                    currentWeather!.weatherCode,
+                    currentWeather!.cloudCover,
+                    currentWeather!.isDay,
+                  )}${radarRain.hasRain ? " · Radar-synced" : satClouds !== null ? " · Sat-synced" : ""}`
                 : loading
                   ? "Loading…"
                   : ""}
@@ -186,6 +191,7 @@ function WeatherPage() {
         hourly={data?.hourly ?? []}
         loading={!data}
         utcOffsetSeconds={data?.utcOffsetSeconds ?? 0}
+          current={currentWeather ?? undefined}
       />
 
       {/* 7-day forecast (free) + 16-day teaser (premium) */}
