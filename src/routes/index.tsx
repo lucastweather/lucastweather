@@ -39,6 +39,7 @@ import EarthquakeMap from "@/components/EarthquakeMap";
 import HourlyForecast from "@/components/HourlyForecast";
 import HourlyGraph from "@/components/HourlyGraph";
 import HurricaneTracker from "@/components/HurricaneTracker";
+import WeatherNews from "@/components/WeatherNews";
 
 
 export const Route = createFileRoute("/")({
@@ -75,6 +76,10 @@ function WeatherPage() {
     intensity: 0,
     hasRain: false,
   });
+  // Satellite-derived cloud cover (0-100). When available, overrides the
+  // model cloudCover for current-conditions iconography so the icon matches
+  // what's actually overhead right now.
+  const [satClouds, setSatClouds] = useState<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
