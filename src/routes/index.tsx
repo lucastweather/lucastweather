@@ -652,3 +652,99 @@ function syncedMinutely(
     precipProb: Math.max(m.precipProb, 70),
   }));
 }
+
+/**
+ * Returns a human, AccuWeather-style MinuteCast summary, e.g.
+ *   "Rain, heavy at times, will continue for 32 min."
+ *   "Light rain starting in 8 min, lasting 15 min."
+ *   "No precipitation expected in the next 60 minutes."
+ */
+function describeMinuteCast(
+  minutely: MinutelyPoint[],
+  radar: { intensity: number; hasRain: boolean },
+  current?: CurrentWeather,
+): string {
+  const THRESHOLD = 0.001;
+  const wet = minutely.map((m) => m.precip > THRESHOLD);
+  const anyWet = wet.some(Boolean);
+  const currentHasRain = current ? isRainWeatherCode(current.weatherCode) : false;
+
+  if (!anyWet && !radar.hasRain && !currentHasRain) {
+    return "No precipitation expected in the next 60 minutes.";
+  }
+
+  // Find first dry-stretch end (when current rain stops) and first wet-stretch start.
+  const startIdx = wet.findIndex(Boolean);
+  const startsNow = startIdx <= 0 || radar.hasRain || currentHasRain;
+
+  // Determine duration of the relevant stretch.
+  let stretchStart: number;
+  let stretchEnd: number;
+  if (startsNow) {
+    stretchStart = 0;
+    // First minute where rain stops (and stays stopped for ≥3 min)
+    let endIdx = wet.length;
+    for (let i = 0; i < wet.length; i++) {
+      if (!wet[i]) {
+        const ahead = wet.slice(i, i + 3);
+        if (ahead.every((w) => !w)) {
+          endIdx = i;
+          break;
+        }
+      }
+    }
+    stretchEnd = endIdx;
+  } else {
+    stretchStart = startIdx;
+    let endIdx = wet.length;
+    for (let i = startIdx; i < wet.length; i++) {
+      if (!wet[i]) {
+        const ahead = wet.slice(i, i + 3);
+        if (ahead.every((w) => !w)) {
+          endIdx = i;
+          break;
+        }
+      }
+    }
+    stretchEnd = endIdx;
+  }
+
+  const stretch = minutely.slice(stretchStart, stretchEnd);
+  const duration = Math.max(1, stretch.length);
+  const peak = stretch.reduce((m, p) => Math.max(m, p.precip), 0);
+  const avg = stretch.reduce((s, p) => s + p.precip, 0) / Math.max(1, stretch.length);
+
+  // Intensity classification (inches per minute, roughly).
+  const heavyMinutes = stretch.filter((p) => p.precip > 0.03).length;
+  const moderateMinutes = stretch.filter((p) => p.precip > 0.012).length;
+
+  let intensity: "light" | "moderate" | "heavy";
+  if (peak > 0.04 || avg > 0.025) intensity = "heavy";
+  else if (peak > 0.012 || avg > 0.008) intensity = "moderate";
+  else intensity = "light";
+
+  const variesHeavy = heavyMinutes >= 3 && intensity !== "heavy";
+  const variesModerate = moderateMinutes >= 3 && intensity === "light";
+
+  const noun =
+    intensity === "heavy"
+      ? "Heavy rain"
+      : intensity === "moderate"
+        ? "Rain"
+        : "Light rain";
+
+  const variation = variesHeavy
+    ? ", heavy at times,"
+    : variesModerate
+      ? ", moderate at times,"
+      : "";
+
+  if (startsNow) {
+    if (stretchEnd >= wet.length) {
+      return `${noun}${variation} will continue for the next hour.`;
+    }
+    return `${noun}${variation} will continue for ${duration} min.`;
+  }
+
+  return `${noun}${variation} starting in ${stretchStart} min, lasting ${duration} min.`;
+}
