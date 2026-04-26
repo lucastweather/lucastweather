@@ -714,17 +714,35 @@ function describeMinuteCast(
   const peak = stretch.reduce((m, p) => Math.max(m, p.precip), 0);
   const avg = stretch.reduce((s, p) => s + p.precip, 0) / Math.max(1, stretch.length);
 
-  // Intensity classification (inches per minute, roughly).
-  const heavyMinutes = stretch.filter((p) => p.precip > 0.03).length;
-  const moderateMinutes = stretch.filter((p) => p.precip > 0.012).length;
+  // Intensity thresholds match the MinuteCast chart legend exactly
+  // (inches/minute, applied to the SAME synced/boosted series the chart renders):
+  //   Trace    > 0
+  //   Light    > 0.005
+  //   Moderate > 0.02
+  //   Heavy    > 0.05
+  const LIGHT = 0.005;
+  const MODERATE = 0.02;
+  const HEAVY = 0.05;
 
+  const heavyMinutes = stretch.filter((p) => p.precip > HEAVY).length;
+  const moderateMinutes = stretch.filter((p) => p.precip > MODERATE).length;
+  const lightMinutes = stretch.filter((p) => p.precip > LIGHT).length;
+
+  // Overall intensity = highest band that covers a meaningful share
+  // (≥25% of the rain window, min 2 minutes) — keeps a couple of stray
+  // heavy spikes from labeling a mostly-light shower as "Heavy".
+  const minShare = Math.max(2, Math.ceil(stretch.length * 0.25));
   let intensity: "light" | "moderate" | "heavy";
-  if (peak > 0.04 || avg > 0.025) intensity = "heavy";
-  else if (peak > 0.012 || avg > 0.008) intensity = "moderate";
+  if (heavyMinutes >= minShare || avg > MODERATE) intensity = "heavy";
+  else if (moderateMinutes >= minShare || avg > LIGHT) intensity = "moderate";
   else intensity = "light";
 
-  const variesHeavy = heavyMinutes >= 3 && intensity !== "heavy";
-  const variesModerate = moderateMinutes >= 3 && intensity === "light";
+  // "…at times" only when a clearly higher band appears briefly (≥2 min)
+  // without dominating the stretch.
+  const variesHeavy = heavyMinutes >= 2 && intensity !== "heavy";
+  const variesModerate = moderateMinutes >= 2 && intensity === "light";
+  void peak;
+  void lightMinutes;
 
   const noun =
     intensity === "heavy"
