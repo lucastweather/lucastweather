@@ -272,16 +272,7 @@ function WeatherPage() {
             const next = syncedMinutely(data.minutely, radarRain, currentWeather ?? undefined);
             if (next.length === 0)
               return "Minute-by-minute data unavailable for this region.";
-            const total = next.reduce((s, m) => s + m.precip, 0);
-            if (total < 0.001 && !radarRain.hasRain && !isRainWeatherCode(currentWeather?.weatherCode ?? -1))
-              return "No precipitation expected in the next 60 minutes.";
-            if (radarRain.hasRain && total < 0.001) {
-              return "Radar shows precipitation overhead — light, brief sprinkles likely.";
-            }
-            const startIdx = next.findIndex((m) => m.precip > 0.001);
-            const endIdx =
-              next.length - 1 - [...next].reverse().findIndex((m) => m.precip > 0.001);
-            return `Precipitation from minute ${startIdx} to ${endIdx} · ${total.toFixed(2)}" total`;
+            return describeMinuteCast(next, radarRain, currentWeather ?? undefined);
           })()}
         </p>
         <MinuteCastChart minutely={syncedMinutely(data?.minutely ?? [], radarRain, currentWeather ?? undefined)} />
