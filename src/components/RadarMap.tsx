@@ -293,10 +293,11 @@ export default function RadarMap({
     satellite: "SATELLITE IR",
     clouds: "CLOUD COVER (IR)",
     precip: "PRECIPITATION",
-    temp: "RADAR",
-    wind: "RADAR",
-    lightning: "RADAR",
+    temp: "TEMPERATURE",
+    wind: "WIND SPEED",
+    lightning: "LIGHTNING",
   };
+  const attribution = NOAA_WMS[layer]?.attribution ?? "RainViewer";
 
   return (
     <div>
@@ -320,7 +321,7 @@ export default function RadarMap({
           </div>
         )}
         <div className="absolute bottom-2 right-2 text-[9px] font-mono text-muted-foreground bg-background/60 px-1.5 py-0.5 rounded z-[400]">
-          © OpenStreetMap · RainViewer
+          © OpenStreetMap · {attribution}
         </div>
       </div>
       <div className="mt-3 flex items-center gap-3 flex-wrap">
@@ -366,11 +367,11 @@ export default function RadarMap({
       </div>
       <div className="mt-2 flex items-center justify-between text-[10px] font-mono text-muted-foreground">
         <span>
-          {useSatellite ? "← past satellite" : "← 2 hr observed"}
+          {useStaticNoaaLayer ? `← ${layerLabel[layer].toLowerCase()}` : "← 2 hr observed"}
         </span>
         <span className="text-warning">now</span>
         <span>
-          {useSatellite ? "live IR" : "+30 min forecast →"}
+          {useStaticNoaaLayer ? "live NOAA layer" : "+30 min forecast →"}
         </span>
       </div>
     </div>
