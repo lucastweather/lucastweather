@@ -642,12 +642,35 @@ function syncedMinutely(
     ...m,
     precip: m.precip > 0 ? m.precip * 1.3 : m.precip,
   }));
+
+  // If the current minute is showing rain (radar overhead or current conditions
+  // say it's raining) but the model only registers a "trace" amount (< Light
+  // threshold of 0.005 in/min), bump it up to at least Light, and to Moderate
+  // when radar intensity is meaningful. The minutely series is heavily
+  // smoothed/scaled-down compared to what's actually falling at the station.
+  const LIGHT_MIN = 0.008; // safely above the chart's >0.005 "Light" cutoff
+  const MODERATE_MIN = 0.025; // safely above the chart's >0.02 "Moderate" cutoff
+  if ((radar.hasRain || currentHasRain) && boosted.length > 0) {
+    const target =
+      radar.intensity > 0.45
+        ? MODERATE_MIN * 1.4 // lean Heavy-ish for strong returns
+        : radar.intensity > 0.2
+          ? MODERATE_MIN
+          : LIGHT_MIN;
+    boosted[0] = {
+      ...boosted[0],
+      precip: Math.max(boosted[0].precip, target),
+      precipProb: Math.max(boosted[0].precipProb, 80),
+    };
+  }
+
   if ((!radar.hasRain && !currentHasRain) || base.length === 0) return boosted;
   const modelTotal = base.reduce((s, m) => s + m.precip, 0);
   if (modelTotal > 0.01) return boosted;
   const baseline = Math.max(0.007, Math.min(0.06, (radar.intensity || 0.15) * 0.05));
   return boosted.map((m, i) => ({
     ...m,
+    // Keep the bumped "Now" value if it's already higher than the baseline curve.
     precip: Math.max(m.precip, baseline * (1 - Math.min(1, i / 60) * 0.5)),
     precipProb: Math.max(m.precipProb, 70),
   }));
