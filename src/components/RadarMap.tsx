@@ -129,6 +129,7 @@ export default function RadarMap({
 }: Props) {
   const mapEl = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
+  const leafletRef = useRef<any>(null);
   const layersRef = useRef<Record<string, any>>({});
   const [radarFrames, setRadarFrames] = useState<Frame[]>([]);
   const [pastCount, setPastCount] = useState(0);
@@ -156,6 +157,7 @@ export default function RadarMap({
       }
       const L = await import("leaflet");
       if (cancelled || !mapEl.current) return;
+      leafletRef.current = L;
       const map = L.map(mapEl.current, {
         zoomControl: true,
         attributionControl: false,
@@ -257,7 +259,7 @@ export default function RadarMap({
   // Add/swap tile layers for the current frame index.
   useEffect(() => {
     if (!ready || !mapRef.current || frames.length === 0 || (!host && !useStaticNoaaLayer)) return;
-    const L = (window as any).L;
+    const L = leafletRef.current;
     if (!L) return;
     const map = mapRef.current;
 
