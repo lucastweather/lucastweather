@@ -28,7 +28,7 @@ const layers = [
   { id: "wind", label: "Wind", emoji: "🌬️", premium: false },
   { id: "precip", label: "Precipitation", emoji: "🌧️", premium: false },
   { id: "clouds", label: "Cloud Cover", emoji: "☁️", premium: false },
-  { id: "lightning", label: "Lightning", emoji: "⚡", premium: true },
+  { id: "lightning", label: "Lightning", emoji: "⚡", premium: false },
 ] as const;
 
 function RadarPage() {
@@ -125,10 +125,9 @@ function RadarPage() {
             <div className="flex items-center gap-3">
               <Lock className="size-5 text-warning" />
               <div className="text-sm">
-                <div className="font-semibold">Unlock lightning & extended outlook</div>
+                <div className="font-semibold">Unlock the extended outlook</div>
                 <div className="text-muted-foreground text-xs">
-                  Radar nowcast is free for everyone. Premium adds lightning telemetry,
-                  hi-res satellite, and 4-hour outlook.
+                  Radar nowcast and live map layers are free. Premium adds the full extended outlook.
                 </div>
               </div>
             </div>
