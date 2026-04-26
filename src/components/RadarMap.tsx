@@ -28,21 +28,42 @@ type Props = {
 const RAINVIEWER_API = "https://api.rainviewer.com/public/weather-maps.json";
 const STATIC_FRAME: Frame = { time: 0, path: "static-live-layer" };
 const STATIC_FRAMES: Frame[] = [STATIC_FRAME];
-const NOAA_WMS: Partial<Record<RadarLayer, { url: string; layers: string; opacity: number }>> = {
+const NOAA_WMS: Partial<Record<RadarLayer, { url: string; layers: string; opacity: number; attribution: string }>> = {
   satellite: {
     url: "https://nowcoast.noaa.gov/geoserver/observations/satellite/wms",
     layers: "global_visible_imagery_mosaic",
     opacity: 0.78,
+    attribution: "NOAA nowCOAST satellite",
   },
   clouds: {
     url: "https://nowcoast.noaa.gov/geoserver/observations/satellite/wms",
     layers: "global_longwave_imagery_mosaic",
     opacity: 0.72,
+    attribution: "NOAA nowCOAST satellite",
   },
   precip: {
     url: "https://mapservices.weather.noaa.gov/raster/services/obs/mrms_qpe/ImageServer/WMSServer",
     layers: "mrms_qpe:rft_1hr",
     opacity: 0.72,
+    attribution: "NOAA MRMS precipitation",
+  },
+  temp: {
+    url: "https://nowcoast.noaa.gov/geoserver/ows",
+    layers: "ndfd_temperature:air_temperature",
+    opacity: 0.66,
+    attribution: "NOAA/NWS temperature",
+  },
+  wind: {
+    url: "https://nowcoast.noaa.gov/geoserver/ows",
+    layers: "ndfd_wind:wind_speed",
+    opacity: 0.68,
+    attribution: "NOAA/NWS wind",
+  },
+  lightning: {
+    url: "https://nowcoast.noaa.gov/geoserver/ows",
+    layers: "lightning_detection:ldn_lightning_strike_density",
+    opacity: 0.82,
+    attribution: "NOAA lightning density",
   },
 };
 
@@ -82,7 +103,7 @@ function createOverlayLayer(L: any, host: string, frame: Frame, layer: RadarLaye
       opacity: 0,
       zIndex: 10,
       version: "1.1.1",
-      attribution: "NOAA/NWS",
+      attribution: wms.attribution,
     });
   }
 
@@ -119,7 +140,7 @@ export default function RadarMap({
   const [hover, setHover] = useState<{ lat: number; lon: number } | null>(null);
 
   const useSatellite = layer === "satellite" || layer === "clouds";
-  const useStaticNoaaLayer = layer === "satellite" || layer === "clouds" || layer === "precip";
+  const useStaticNoaaLayer = Boolean(NOAA_WMS[layer]);
   const frames = useStaticNoaaLayer ? STATIC_FRAMES : radarFrames;
 
   // Init Leaflet (CDN) + map
