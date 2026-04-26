@@ -280,10 +280,12 @@ export default function RadarMap({
 
   const current = frames[idx];
   const isForecast = !useSatellite && current ? idx >= pastCount : false;
-  const minutesOffset = current
+  const minutesOffset = current && !useStaticNoaaLayer
     ? Math.round((current.time * 1000 - Date.now()) / 60000)
     : 0;
-  const label = current
+  const label = useStaticNoaaLayer
+    ? "Live"
+    : current
     ? new Date(current.time * 1000).toLocaleTimeString([], {
         hour: "2-digit",
         minute: "2-digit",
