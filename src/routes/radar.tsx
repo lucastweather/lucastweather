@@ -28,7 +28,7 @@ const layers = [
   { id: "wind", label: "Wind", emoji: "🌬️", premium: false },
   { id: "precip", label: "Precipitation", emoji: "🌧️", premium: false },
   { id: "clouds", label: "Cloud Cover", emoji: "☁️", premium: false },
-  { id: "lightning", label: "Lightning", emoji: "⚡", premium: false },
+  { id: "lightning", label: "Lightning", emoji: "⚡", premium: true },
 ] as const;
 
 function RadarPage() {
