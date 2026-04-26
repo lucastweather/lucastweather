@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Zap, Lock } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import PageShell from "@/components/PageShell";
