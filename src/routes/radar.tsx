@@ -49,11 +49,6 @@ function RadarPage() {
               ? "NOAA/NWS wind"
               : "NOAA lightning density";
 
-  // If lightning is selected but user lost premium, drop back to radar
-  useEffect(() => {
-    if (layer === "lightning" && !subscribed) setLayer("radar");
-  }, [subscribed, layer]);
-
   return (
     <PageShell>
       <section className="panel p-6">
@@ -107,7 +102,7 @@ function RadarPage() {
           layer={layer}
         />
 
-        {layer === "lightning" && subscribed && (
+        {layer === "lightning" && (
           <div className="mt-4 panel p-4 flex items-center gap-3 border-warning/30">
             <Zap className="size-5 text-warning drop-shadow-[0_0_8px_rgba(250,204,21,0.9)] animate-pulse" />
             <div className="text-sm">
