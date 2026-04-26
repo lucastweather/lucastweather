@@ -28,21 +28,42 @@ type Props = {
 const RAINVIEWER_API = "https://api.rainviewer.com/public/weather-maps.json";
 const STATIC_FRAME: Frame = { time: 0, path: "static-live-layer" };
 const STATIC_FRAMES: Frame[] = [STATIC_FRAME];
-const NOAA_WMS: Partial<Record<RadarLayer, { url: string; layers: string; opacity: number }>> = {
+const NOAA_WMS: Partial<Record<RadarLayer, { url: string; layers: string; opacity: number; attribution: string }>> = {
   satellite: {
     url: "https://nowcoast.noaa.gov/geoserver/observations/satellite/wms",
     layers: "global_visible_imagery_mosaic",
     opacity: 0.78,
+    attribution: "NOAA nowCOAST satellite",
   },
   clouds: {
     url: "https://nowcoast.noaa.gov/geoserver/observations/satellite/wms",
     layers: "global_longwave_imagery_mosaic",
     opacity: 0.72,
+    attribution: "NOAA nowCOAST satellite",
   },
   precip: {
     url: "https://mapservices.weather.noaa.gov/raster/services/obs/mrms_qpe/ImageServer/WMSServer",
     layers: "mrms_qpe:rft_1hr",
     opacity: 0.72,
+    attribution: "NOAA MRMS precipitation",
+  },
+  temp: {
+    url: "https://nowcoast.noaa.gov/geoserver/ows",
+    layers: "ndfd_temperature:air_temperature",
+    opacity: 0.66,
+    attribution: "NOAA/NWS temperature",
+  },
+  wind: {
+    url: "https://nowcoast.noaa.gov/geoserver/ows",
+    layers: "ndfd_wind:wind_speed",
+    opacity: 0.68,
+    attribution: "NOAA/NWS wind",
+  },
+  lightning: {
+    url: "https://nowcoast.noaa.gov/geoserver/ows",
+    layers: "lightning_detection:ldn_lightning_strike_density",
+    opacity: 0.82,
+    attribution: "NOAA lightning density",
   },
 };
 
@@ -82,7 +103,7 @@ function createOverlayLayer(L: any, host: string, frame: Frame, layer: RadarLaye
       opacity: 0,
       zIndex: 10,
       version: "1.1.1",
-      attribution: "NOAA/NWS",
+      attribution: wms.attribution,
     });
   }
 
@@ -108,6 +129,7 @@ export default function RadarMap({
 }: Props) {
   const mapEl = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
+  const leafletRef = useRef<any>(null);
   const layersRef = useRef<Record<string, any>>({});
   const [radarFrames, setRadarFrames] = useState<Frame[]>([]);
   const [pastCount, setPastCount] = useState(0);
@@ -119,7 +141,7 @@ export default function RadarMap({
   const [hover, setHover] = useState<{ lat: number; lon: number } | null>(null);
 
   const useSatellite = layer === "satellite" || layer === "clouds";
-  const useStaticNoaaLayer = layer === "satellite" || layer === "clouds" || layer === "precip";
+  const useStaticNoaaLayer = Boolean(NOAA_WMS[layer]);
   const frames = useStaticNoaaLayer ? STATIC_FRAMES : radarFrames;
 
   // Init Leaflet (CDN) + map
@@ -135,6 +157,7 @@ export default function RadarMap({
       }
       const L = await import("leaflet");
       if (cancelled || !mapEl.current) return;
+      leafletRef.current = L;
       const map = L.map(mapEl.current, {
         zoomControl: true,
         attributionControl: false,
@@ -236,7 +259,7 @@ export default function RadarMap({
   // Add/swap tile layers for the current frame index.
   useEffect(() => {
     if (!ready || !mapRef.current || frames.length === 0 || (!host && !useStaticNoaaLayer)) return;
-    const L = (window as any).L;
+    const L = leafletRef.current;
     if (!L) return;
     const map = mapRef.current;
 
@@ -257,10 +280,12 @@ export default function RadarMap({
 
   const current = frames[idx];
   const isForecast = !useSatellite && current ? idx >= pastCount : false;
-  const minutesOffset = current
+  const minutesOffset = current && !useStaticNoaaLayer
     ? Math.round((current.time * 1000 - Date.now()) / 60000)
     : 0;
-  const label = current
+  const label = useStaticNoaaLayer
+    ? "Live"
+    : current
     ? new Date(current.time * 1000).toLocaleTimeString([], {
         hour: "2-digit",
         minute: "2-digit",
@@ -272,10 +297,11 @@ export default function RadarMap({
     satellite: "SATELLITE IR",
     clouds: "CLOUD COVER (IR)",
     precip: "PRECIPITATION",
-    temp: "RADAR",
-    wind: "RADAR",
-    lightning: "RADAR",
+    temp: "TEMPERATURE",
+    wind: "WIND SPEED",
+    lightning: "LIGHTNING",
   };
+  const attribution = NOAA_WMS[layer]?.attribution ?? "RainViewer";
 
   return (
     <div>
@@ -299,7 +325,7 @@ export default function RadarMap({
           </div>
         )}
         <div className="absolute bottom-2 right-2 text-[9px] font-mono text-muted-foreground bg-background/60 px-1.5 py-0.5 rounded z-[400]">
-          © OpenStreetMap · RainViewer
+          © OpenStreetMap · {attribution}
         </div>
       </div>
       <div className="mt-3 flex items-center gap-3 flex-wrap">
@@ -345,11 +371,11 @@ export default function RadarMap({
       </div>
       <div className="mt-2 flex items-center justify-between text-[10px] font-mono text-muted-foreground">
         <span>
-          {useSatellite ? "← past satellite" : "← 2 hr observed"}
+          {useStaticNoaaLayer ? `← ${layerLabel[layer].toLowerCase()}` : "← 2 hr observed"}
         </span>
         <span className="text-warning">now</span>
         <span>
-          {useSatellite ? "live IR" : "+30 min forecast →"}
+          {useStaticNoaaLayer ? "live NOAA layer" : "+30 min forecast →"}
         </span>
       </div>
     </div>

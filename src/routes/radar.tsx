@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Zap, Lock } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import PageShell from "@/components/PageShell";
@@ -28,7 +28,7 @@ const layers = [
   { id: "wind", label: "Wind", emoji: "🌬️", premium: false },
   { id: "precip", label: "Precipitation", emoji: "🌧️", premium: false },
   { id: "clouds", label: "Cloud Cover", emoji: "☁️", premium: false },
-  { id: "lightning", label: "Lightning", emoji: "⚡", premium: true },
+  { id: "lightning", label: "Lightning", emoji: "⚡", premium: false },
 ] as const;
 
 function RadarPage() {
@@ -36,11 +36,18 @@ function RadarPage() {
   const { user } = useAuth();
   const { subscribed } = useSubscription();
   const [layer, setLayer] = useState<(typeof layers)[number]["id"]>("radar");
-
-  // If lightning is selected but user lost premium, drop back to radar
-  useEffect(() => {
-    if (layer === "lightning" && !subscribed) setLayer("radar");
-  }, [subscribed, layer]);
+  const layerSource =
+    layer === "radar"
+      ? "RainViewer radar composite"
+      : layer === "precip"
+        ? "NOAA MRMS precipitation"
+        : layer === "satellite" || layer === "clouds"
+          ? "NOAA nowCOAST satellite"
+          : layer === "temp"
+            ? "NOAA/NWS temperature"
+            : layer === "wind"
+              ? "NOAA/NWS wind"
+              : "NOAA lightning density";
 
   return (
     <PageShell>
@@ -95,7 +102,7 @@ function RadarPage() {
           layer={layer}
         />
 
-        {layer === "lightning" && subscribed && (
+        {layer === "lightning" && (
           <div className="mt-4 panel p-4 flex items-center gap-3 border-warning/30">
             <Zap className="size-5 text-warning drop-shadow-[0_0_8px_rgba(250,204,21,0.9)] animate-pulse" />
             <div className="text-sm">
@@ -113,10 +120,9 @@ function RadarPage() {
             <div className="flex items-center gap-3">
               <Lock className="size-5 text-warning" />
               <div className="text-sm">
-                <div className="font-semibold">Unlock lightning & extended outlook</div>
+                <div className="font-semibold">Unlock the extended outlook</div>
                 <div className="text-muted-foreground text-xs">
-                  Radar nowcast is free for everyone. Premium adds lightning telemetry,
-                  hi-res satellite, and 4-hour outlook.
+                  Radar nowcast and live map layers are free. Premium adds the full extended outlook.
                 </div>
               </div>
             </div>
@@ -132,8 +138,8 @@ function RadarPage() {
 
         <p className="text-xs text-muted-foreground mt-3">
           Layer: <span className="font-mono text-primary">{layer}</span> · Source:{" "}
-          <span className="font-mono">RainViewer composite</span> · Frames refresh every
-          ~10 minutes from global radar networks.
+          <span className="font-mono">{layerSource}</span> · Live map tiles refresh from
+          their source service.
         </p>
       </section>
 

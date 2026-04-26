@@ -647,11 +647,15 @@ function syncedMinutely(
   current?: CurrentWeather,
 ): MinutelyPoint[] {
   const currentHasRain = current ? isRainWeatherCode(current.weatherCode) : false;
-  if ((!radar.hasRain && !currentHasRain) || base.length === 0) return base;
+  const boosted = base.map((m) => ({
+    ...m,
+    precip: m.precip > 0 ? m.precip * 1.3 : m.precip,
+  }));
+  if ((!radar.hasRain && !currentHasRain) || base.length === 0) return boosted;
   const modelTotal = base.reduce((s, m) => s + m.precip, 0);
-  if (modelTotal > 0.01) return base;
-  const baseline = Math.max(0.005, Math.min(0.05, (radar.intensity || 0.15) * 0.04));
-  return base.map((m, i) => ({
+  if (modelTotal > 0.01) return boosted;
+  const baseline = Math.max(0.007, Math.min(0.06, (radar.intensity || 0.15) * 0.05));
+  return boosted.map((m, i) => ({
     ...m,
     precip: Math.max(m.precip, baseline * (1 - Math.min(1, i / 60) * 0.5)),
     precipProb: Math.max(m.precipProb, 70),

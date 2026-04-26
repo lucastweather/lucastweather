@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 import { createServerFn } from "@tanstack/react-start";
 import { Newspaper, ExternalLink, AlertTriangle } from "lucide-react";
+import {
+  WEATHER_NEWS_SOURCE_LABEL,
+  fetchWeatherNewsItems,
+  type NewsItem,
+} from "@/lib/weather-news";
 
 /**
  * Weather News — pulls the latest items from the NWS / NOAA newsroom RSS feed
@@ -8,75 +13,8 @@ import { Newspaper, ExternalLink, AlertTriangle } from "lucide-react";
  * if the upstream feed is unavailable.
  */
 
-export type NewsItem = {
-  title: string;
-  link: string;
-  pubDate: string;
-  source: string;
-  description?: string;
-};
-
-const SOURCES: { name: string; url: string }[] = [
-  // NOAA newsroom — broad weather, climate, ocean & space news
-  { name: "NOAA", url: "https://www.noaa.gov/stories.xml" },
-  // National Weather Service Weather-Ready Nation news
-  { name: "NWS", url: "https://www.weather.gov/wrn/xml/rss/news.xml" },
-];
-
-function decode(s: string): string {
-  return s
-    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/<[^>]+>/g, "")
-    .trim();
-}
-
-function parseRss(xml: string, source: string): NewsItem[] {
-  const items: NewsItem[] = [];
-  const itemRegex = /<item[\s\S]*?<\/item>/gi;
-  const matches = xml.match(itemRegex) ?? [];
-  for (const block of matches) {
-    const title = /<title>([\s\S]*?)<\/title>/i.exec(block)?.[1] ?? "";
-    const link = /<link>([\s\S]*?)<\/link>/i.exec(block)?.[1] ?? "";
-    const pubDate = /<pubDate>([\s\S]*?)<\/pubDate>/i.exec(block)?.[1] ?? "";
-    const description = /<description>([\s\S]*?)<\/description>/i.exec(block)?.[1] ?? "";
-    if (!title || !link) continue;
-    items.push({
-      title: decode(title),
-      link: decode(link),
-      pubDate: decode(pubDate),
-      source,
-      description: decode(description).slice(0, 220),
-    });
-  }
-  return items;
-}
-
 export const fetchWeatherNews = createServerFn({ method: "GET" }).handler(
-  async (): Promise<NewsItem[]> => {
-    const results = await Promise.allSettled(
-      SOURCES.map(async (s) => {
-        const r = await fetch(s.url, {
-          headers: { "User-Agent": "lucast-weather (contact@lucast.app)" },
-        });
-        if (!r.ok) throw new Error(`${s.name} ${r.status}`);
-        return parseRss(await r.text(), s.name);
-      }),
-    );
-    const merged: NewsItem[] = [];
-    for (const r of results) {
-      if (r.status === "fulfilled") merged.push(...r.value);
-    }
-    merged.sort(
-      (a, b) =>
-        new Date(b.pubDate || 0).getTime() - new Date(a.pubDate || 0).getTime(),
-    );
-    return merged.slice(0, 12);
-  },
+  async (): Promise<NewsItem[]> => fetchWeatherNewsItems(),
 );
 
 export default function WeatherNews() {
@@ -101,7 +39,7 @@ export default function WeatherNews() {
       <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
         <Newspaper className="size-5 text-primary" /> Weather News
         <span className="chip px-2 py-0.5 text-[10px] text-success border-success/30">
-          NOAA · NWS
+          {WEATHER_NEWS_SOURCE_LABEL}
         </span>
       </h2>
       {loading && (
