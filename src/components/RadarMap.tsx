@@ -390,6 +390,27 @@ export default function RadarMap({
   );
 }
 
+function hoverDescriptor(layer: RadarLayer): string {
+  switch (layer) {
+    case "radar":
+      return "Reflectivity (dBZ)";
+    case "precip":
+      return "1-hr accumulation";
+    case "satellite":
+      return "Visible imagery";
+    case "clouds":
+      return "Cloud-top temp (IR)";
+    case "temp":
+      return "Surface air temp";
+    case "wind":
+      return "Wind speed (mph)";
+    case "lightning":
+      return "Strike density";
+    default:
+      return "";
+  }
+}
+
 /**
  * Sample a single RainViewer tile at the user's lat/lon to detect coverage.
  * Returns alpha 0..1. Used for both rain (radar) and clouds (satellite IR).
