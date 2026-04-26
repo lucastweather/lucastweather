@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createServerFn } from "@tanstack/react-start";
 import { Wind, ExternalLink, AlertTriangle } from "lucide-react";
 import {
   BASIN_LABEL,
@@ -10,6 +11,10 @@ import {
   type NHCStorm,
   type OutlookRange,
 } from "@/lib/nhc";
+
+const fetchHurricaneData = createServerFn({ method: "GET" }).handler(
+  async (): Promise<NHCStorm[]> => fetchActiveStorms(),
+);
 
 /**
  * National Hurricane Center tropical weather outlook + active storm tracker.
@@ -26,19 +31,23 @@ export default function HurricaneTracker() {
   const [imgBust, setImgBust] = useState(() => Math.floor(Date.now() / 600_000));
 
   useEffect(() => {
-    const ctrl = new AbortController();
+    let cancelled = false;
     setLoading(true);
     setErr(null);
-    fetchActiveStorms(ctrl.signal)
-      .then(setStorms)
-      .catch((e) => {
-        if (e.name !== "AbortError") setErr(e.message);
+    fetchHurricaneData()
+      .then((data) => {
+        if (!cancelled) setStorms(data);
       })
-      .finally(() => setLoading(false));
+      .catch((e) => {
+        if (!cancelled) setErr(e.message);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
 
     const t = setInterval(() => setImgBust(Math.floor(Date.now() / 600_000)), 600_000);
     return () => {
-      ctrl.abort();
+      cancelled = true;
       clearInterval(t);
     };
   }, []);
