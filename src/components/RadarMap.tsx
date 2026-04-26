@@ -320,8 +320,16 @@ export default function RadarMap({
           )}
         </div>
         {hover && (
-          <div className="absolute top-3 right-3 chip px-2 py-1 text-[10px] font-mono z-[400]">
-            {hover.lat.toFixed(3)}°, {hover.lon.toFixed(3)}°
+          <div className="absolute top-3 right-3 chip px-2.5 py-1.5 text-[10px] font-mono z-[400] flex flex-col gap-0.5 bg-background/85 backdrop-blur-sm border border-border/60 min-w-[140px]">
+            <span className="text-foreground font-semibold uppercase tracking-wide">
+              {layerLabel[layer]}
+            </span>
+            <span className="text-muted-foreground">
+              {hover.lat.toFixed(3)}°, {hover.lon.toFixed(3)}°
+            </span>
+            <span className="text-primary">
+              {hoverDescriptor(layer)}
+            </span>
           </div>
         )}
         <div className="absolute bottom-2 right-2 text-[9px] font-mono text-muted-foreground bg-background/60 px-1.5 py-0.5 rounded z-[400]">
