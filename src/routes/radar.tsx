@@ -36,6 +36,18 @@ function RadarPage() {
   const { user } = useAuth();
   const { subscribed } = useSubscription();
   const [layer, setLayer] = useState<(typeof layers)[number]["id"]>("radar");
+  const layerSource =
+    layer === "radar"
+      ? "RainViewer radar composite"
+      : layer === "precip"
+        ? "NOAA MRMS precipitation"
+        : layer === "satellite" || layer === "clouds"
+          ? "NOAA nowCOAST satellite"
+          : layer === "temp"
+            ? "NOAA/NWS temperature"
+            : layer === "wind"
+              ? "NOAA/NWS wind"
+              : "NOAA lightning density";
 
   // If lightning is selected but user lost premium, drop back to radar
   useEffect(() => {
@@ -132,8 +144,8 @@ function RadarPage() {
 
         <p className="text-xs text-muted-foreground mt-3">
           Layer: <span className="font-mono text-primary">{layer}</span> · Source:{" "}
-          <span className="font-mono">RainViewer composite</span> · Frames refresh every
-          ~10 minutes from global radar networks.
+          <span className="font-mono">{layerSource}</span> · Live map tiles refresh from
+          their source service.
         </p>
       </section>
 
