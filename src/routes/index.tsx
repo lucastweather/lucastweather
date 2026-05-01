@@ -670,7 +670,7 @@ function syncHourlyToRadar(
  */
 function syncedMinutely(
   base: MinutelyPoint[],
-  radar: { intensity: number; hasRain: boolean },
+  radar: { intensity: number; hasRain: boolean; checked?: boolean },
   current?: CurrentWeather,
 ): MinutelyPoint[] {
   const currentHasRain = current ? isRainWeatherCode(current.weatherCode) : false;
@@ -728,7 +728,7 @@ function syncedMinutely(
  */
 function describeMinuteCast(
   minutely: MinutelyPoint[],
-  radar: { intensity: number; hasRain: boolean },
+  radar: { intensity: number; hasRain: boolean; checked?: boolean },
   current?: CurrentWeather,
 ): string {
   const THRESHOLD = 0.001;
