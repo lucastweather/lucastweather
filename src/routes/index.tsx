@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Wind,
   Droplets,
@@ -10,7 +10,6 @@ import {
   ChevronDown,
   AlertCircle,
   Sparkles,
-  
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { Lock, Crown } from "lucide-react";
@@ -21,7 +20,7 @@ import DailyRecommendations from "@/components/DailyRecommendations";
 import FavoriteCities from "@/components/FavoriteCities";
 import WeatherIcon from "@/components/WeatherIcon";
 import { useCity } from "@/lib/city-store";
-import { parseCalendarDate, localDateKey } from "@/lib/date";
+import { parseCalendarDate, localDateKey, parseLocalDateTime, cityNow } from "@/lib/date";
 import { useSubscription } from "@/lib/auth-store";
 import {
   fetchWeather,
@@ -29,6 +28,7 @@ import {
   weatherLabel,
   forecastNarrative,
   isRainWeatherCode,
+  dryWeatherCodeFromCloud,
   syncCurrentWeather,
   type CurrentWeather,
   type DailyForecast,
@@ -42,7 +42,6 @@ import HourlyForecast from "@/components/HourlyForecast";
 import HourlyGraph from "@/components/HourlyGraph";
 import HurricaneTracker from "@/components/HurricaneTracker";
 import WeatherNews from "@/components/WeatherNews";
-
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -74,7 +73,11 @@ function WeatherPage() {
   const [err, setErr] = useState<string | null>(null);
   // Radar-driven nowcast intensity (0..1) — used to sync MinuteCast so it
   // never claims "no rain" when the radar is showing precipitation overhead.
-  const [radarRain, setRadarRain] = useState<{ intensity: number; hasRain: boolean }>({
+  const [radarRain, setRadarRain] = useState<{
+    intensity: number;
+    hasRain: boolean;
+    checked?: boolean;
+  }>({
     intensity: 0,
     hasRain: false,
   });
@@ -82,6 +85,12 @@ function WeatherPage() {
   // model cloudCover for current-conditions iconography so the icon matches
   // what's actually overhead right now.
   const [satClouds, setSatClouds] = useState<number | null>(null);
+  const handleNowcast = useCallback((intensity: number, hasRain: boolean) => {
+    setRadarRain({ intensity, hasRain, checked: true });
+  }, []);
+  const handleSatelliteClouds = useCallback((pct: number) => {
+    setSatClouds(pct);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -103,9 +112,10 @@ function WeatherPage() {
   }, []);
 
   const filteredQuakes = quakes.filter((q) => q.mag >= magFilter).slice(0, 10);
-  const currentWeather = data
-    ? syncCurrentWeather(data.current, radarRain, satClouds)
-    : null;
+  const currentWeather = data ? syncCurrentWeather(data.current, radarRain, satClouds) : null;
+  const syncedHourly = data
+    ? syncHourlyToRadar(data.hourly, radarRain, data.utcOffsetSeconds, currentWeather ?? undefined)
+    : [];
 
   return (
     <PageShell>
@@ -158,13 +168,42 @@ function WeatherPage() {
           </div>
         </div>
 
-        <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          <Metric icon={<Wind className="size-4" />} label="Wind" value={data ? `${Math.round(data.current.windSpeed)} mph` : "—"} />
-          <Metric icon={<Droplets className="size-4" />} label="Humidity" value={data ? `${data.current.humidity}%` : "—"} />
-          <Metric icon={<Gauge className="size-4" />} label="Pressure" value={data ? `${data.current.pressure.toFixed(2)} in` : "—"} />
-          <Metric icon={<Compass className="size-4" />} label="Wind Dir" value={data ? `${data.current.windDirection}°` : "—"} />
-          <Metric icon={<Thermometer className="size-4" />} label="Dew Point" value={data ? `${Math.round(data.current.dewPoint)}°F` : "—"} />
-          <Metric icon={<Sun className="size-4" />} label="UV Index" value={data ? `${data.current.uvIndex}` : "—"} />
+        <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
+          <Metric
+            icon={<Wind className="size-4" />}
+            label="Wind"
+            value={data ? `${Math.round(data.current.windSpeed)} mph` : "—"}
+          />
+          <Metric
+            icon={<Wind className="size-4" />}
+            label="Gusts"
+            value={data ? `${Math.round(data.current.windGust)} mph` : "—"}
+          />
+          <Metric
+            icon={<Droplets className="size-4" />}
+            label="Humidity"
+            value={data ? `${data.current.humidity}%` : "—"}
+          />
+          <Metric
+            icon={<Gauge className="size-4" />}
+            label="Pressure"
+            value={data ? `${data.current.pressure.toFixed(2)} in` : "—"}
+          />
+          <Metric
+            icon={<Compass className="size-4" />}
+            label="Wind Dir"
+            value={data ? `${data.current.windDirection}°` : "—"}
+          />
+          <Metric
+            icon={<Thermometer className="size-4" />}
+            label="Dew Point"
+            value={data ? `${Math.round(data.current.dewPoint)}°F` : "—"}
+          />
+          <Metric
+            icon={<Sun className="size-4" />}
+            label="UV Index"
+            value={data ? `${data.current.uvIndex}` : "—"}
+          />
         </div>
       </section>
 
@@ -173,11 +212,7 @@ function WeatherPage() {
 
       {/* Daily activity recommendations */}
       {data && (
-        <DailyRecommendations
-          current={data.current}
-          today={data.daily[0]}
-          cityName={city.name}
-        />
+        <DailyRecommendations current={data.current} today={data.daily[0]} cityName={city.name} />
       )}
 
       {/* Sponsored ad — hidden for premium subscribers */}
@@ -188,10 +223,10 @@ function WeatherPage() {
 
       {/* Hourly forecast — FREE */}
       <HourlyForecast
-        hourly={data?.hourly ?? []}
+        hourly={syncedHourly}
         loading={!data}
         utcOffsetSeconds={data?.utcOffsetSeconds ?? 0}
-          current={currentWeather ?? undefined}
+        current={currentWeather ?? undefined}
       />
 
       {/* 7-day forecast (free) + 16-day teaser (premium) */}
@@ -209,7 +244,7 @@ function WeatherPage() {
         </div>
         <ul className="divide-y divide-border">
           {(data?.daily ?? []).slice(0, subscribed ? 16 : 7).map((d, i) => (
-            <ForecastRow key={d.date} day={d} index={i} hourly={data?.hourly ?? []} />
+            <ForecastRow key={d.date} day={d} index={i} hourly={syncedHourly} />
           ))}
           {!data && <li className="text-sm text-muted-foreground py-2">Loading forecast…</li>}
         </ul>
@@ -248,8 +283,8 @@ function WeatherPage() {
           lat={city.latitude}
           lon={city.longitude}
           showForecast={true}
-          onNowcast={(intensity, hasRain) => setRadarRain({ intensity, hasRain })}
-          onSatelliteClouds={(pct) => setSatClouds(pct)}
+          onNowcast={handleNowcast}
+          onSatelliteClouds={handleSatelliteClouds}
         />
       </section>
 
@@ -270,12 +305,13 @@ function WeatherPage() {
           {(() => {
             if (!data) return "Loading minute-by-minute precipitation…";
             const next = syncedMinutely(data.minutely, radarRain, currentWeather ?? undefined);
-            if (next.length === 0)
-              return "Minute-by-minute data unavailable for this region.";
+            if (next.length === 0) return "Minute-by-minute data unavailable for this region.";
             return describeMinuteCast(next, radarRain, currentWeather ?? undefined);
           })()}
         </p>
-        <MinuteCastChart minutely={syncedMinutely(data?.minutely ?? [], radarRain, currentWeather ?? undefined)} />
+        <MinuteCastChart
+          minutely={syncedMinutely(data?.minutely ?? [], radarRain, currentWeather ?? undefined)}
+        />
         <div className="mt-3 flex gap-3 text-xs text-muted-foreground">
           <span className="flex items-center gap-1">
             <span className="size-2 rounded-sm bg-primary/30" />
@@ -373,11 +409,14 @@ function WeatherPage() {
 
 function MinuteCastChart({ minutely }: { minutely: MinutelyPoint[] }) {
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
-  const bars = minutely.length > 0 ? minutely : Array.from({ length: 60 }).map((_, i) => ({
-    time: new Date(Date.now() + i * 60_000).toISOString(),
-    precip: 0,
-    precipProb: 0,
-  }));
+  const bars =
+    minutely.length > 0
+      ? minutely
+      : Array.from({ length: 60 }).map((_, i) => ({
+          time: new Date(Date.now() + i * 60_000).toISOString(),
+          precip: 0,
+          precipProb: 0,
+        }));
   const max = Math.max(0.02, ...bars.map((b) => b.precip));
   const hover = hoverIdx !== null ? bars[hoverIdx] : null;
   const intensity = (precip: number) =>
@@ -437,7 +476,8 @@ function MinuteCastChart({ minutely }: { minutely: MinutelyPoint[] }) {
               {hoverIdx === 0 ? "Now" : `+${hoverIdx} min`}
             </div>
             <div className="text-muted-foreground">
-              {hover.precip.toFixed(3)}" · {Math.round(hover.precipProb)}% · {intensity(hover.precip)}
+              {hover.precip.toFixed(3)}" · {Math.round(hover.precipProb)}% ·{" "}
+              {intensity(hover.precip)}
             </div>
           </div>
         )}
@@ -468,7 +508,8 @@ function getDailyVisualSummary(day: DailyForecast, hourly: HourlyPoint[]) {
   const daytime = sameDay.filter((hour) => hour.isDay);
   const sample = daytime.length > 0 ? daytime : sameDay;
   const daytimeRainHours = daytime.filter(
-    (hour) => isRainWeatherCode(hour.weatherCode) || (hour.precipProb ?? 0) > 40 || (hour.precip ?? 0) > 0,
+    (hour) =>
+      isRainWeatherCode(hour.weatherCode) || (hour.precipProb ?? 0) > 40 || (hour.precip ?? 0) > 0,
   );
   const dayHasRain = daytimeRainHours.length > 0;
   if (sample.length === 0) {
@@ -477,7 +518,8 @@ function getDailyVisualSummary(day: DailyForecast, hourly: HourlyPoint[]) {
       code: day.weatherCode,
       cloudCover: fallbackCloud,
       label: weatherLabel(day.weatherCode, fallbackCloud, true),
-      dayHasRain: isRainWeatherCode(day.weatherCode) || (day.precipProb ?? 0) > 40 || day.precipSum > 0,
+      dayHasRain:
+        isRainWeatherCode(day.weatherCode) || (day.precipProb ?? 0) > 40 || day.precipSum > 0,
     };
   }
 
@@ -497,7 +539,9 @@ function getDailyVisualSummary(day: DailyForecast, hourly: HourlyPoint[]) {
   }
 
   if (dayHasRain || rainHours.length >= Math.ceil(sample.length * 0.45)) {
-    const heavyRain = daytimeRainHours.some((hour) => [65, 67, 82, 95, 96, 99].includes(hour.weatherCode));
+    const heavyRain = daytimeRainHours.some((hour) =>
+      [65, 67, 82, 95, 96, 99].includes(hour.weatherCode),
+    );
     const code = heavyRain ? 65 : 63;
     return { code, cloudCover: 100, label: weatherLabel(code, 100, true), dayHasRain: true };
   }
@@ -526,11 +570,21 @@ function getDailyVisualSummary(day: DailyForecast, hourly: HourlyPoint[]) {
   const cloudyShare = cloudyHours / sample.length;
 
   if (sunnyShare >= 0.55 && avgCloud <= 35) {
-    return { code: 0, cloudCover: Math.min(avgCloud, 20), label: weatherLabel(0, avgCloud, true), dayHasRain };
+    return {
+      code: 0,
+      cloudCover: Math.min(avgCloud, 20),
+      label: weatherLabel(0, avgCloud, true),
+      dayHasRain,
+    };
   }
 
   if (sunnyShare >= 0.5 || (sunnyShare + mostlySunnyShare >= 0.65 && avgCloud <= 50)) {
-    return { code: 1, cloudCover: Math.min(Math.max(avgCloud, 25), 45), label: weatherLabel(1, avgCloud, true), dayHasRain };
+    return {
+      code: 1,
+      cloudCover: Math.min(Math.max(avgCloud, 25), 45),
+      label: weatherLabel(1, avgCloud, true),
+      dayHasRain,
+    };
   }
 
   if (partlyShare >= 0.35 || (sunnyShare + partlyShare >= 0.5 && avgCloud <= 65)) {
@@ -578,27 +632,22 @@ function ForecastRow({
         className="w-full grid grid-cols-[auto_1fr_auto_auto_auto] items-center gap-4 py-3 text-left hover:bg-accent/30 rounded-lg px-2"
       >
         <span className="w-8 flex items-center justify-center">
-          <WeatherIcon
-            code={visual.code}
-            isDay
-            cloudCover={visual.cloudCover}
-            className="size-7"
-          />
+          <WeatherIcon code={visual.code} isDay cloudCover={visual.cloudCover} className="size-7" />
         </span>
         <span>
           <div className="font-medium">{label}</div>
           <div className="text-xs text-muted-foreground font-mono">{md}</div>
         </span>
-        <span className="hidden sm:block text-sm text-muted-foreground">
-          {visual.label}
-        </span>
+        <span className="hidden sm:block text-sm text-muted-foreground">{visual.label}</span>
         <span className="text-xs text-info flex items-center gap-2 min-w-[64px] justify-end">
           {(day.precipProb ?? 0) > 40 || visual.dayHasRain ? (
             <>
               {day.precipSum > 0 && (
                 <span className="font-mono">💧 {day.precipSum.toFixed(2)}"</span>
               )}
-              <span className="font-mono">{(day.precipProb ?? 0) > 40 ? `${day.precipProb}%` : "Rain"}</span>
+              <span className="font-mono">
+                {(day.precipProb ?? 0) > 40 ? `${day.precipProb}%` : "Rain"}
+              </span>
             </>
           ) : (
             <span className="font-mono text-muted-foreground/40">—</span>
@@ -626,6 +675,41 @@ function ForecastRow({
   );
 }
 
+function syncHourlyToRadar(
+  hourly: HourlyPoint[],
+  radar: { intensity: number; hasRain: boolean; checked?: boolean },
+  utcOffsetSeconds = 0,
+  current?: CurrentWeather,
+): HourlyPoint[] {
+  if (!current || hourly.length === 0) return hourly;
+  const now = cityNow(utcOffsetSeconds).getTime();
+  return hourly.map((hour, index) => {
+    const hourTime = parseLocalDateTime(hour.time).date.getTime();
+    if (hourTime < now - 30 * 60_000 || hourTime > now + 90 * 60_000) return hour;
+    if (radar.hasRain) {
+      return {
+        ...hour,
+        precip: Math.max(hour.precip, 0.03),
+        precipProb: Math.max(hour.precipProb, 80),
+        weatherCode: current.weatherCode,
+        cloudCover: current.cloudCover,
+      };
+    }
+    if (radar.checked) {
+      return {
+        ...hour,
+        precip: 0,
+        precipProb: Math.min(hour.precipProb, 20),
+        weatherCode: isRainWeatherCode(hour.weatherCode)
+          ? dryWeatherCodeFromCloud(current.cloudCover)
+          : hour.weatherCode,
+        cloudCover: current.cloudCover,
+      };
+    }
+    return hour;
+  });
+}
+
 /**
  * Returns the minutely series, but if the radar shows precipitation overhead
  * and the model says zero, lift the series to a light baseline so the chart
@@ -634,7 +718,7 @@ function ForecastRow({
  */
 function syncedMinutely(
   base: MinutelyPoint[],
-  radar: { intensity: number; hasRain: boolean },
+  radar: { intensity: number; hasRain: boolean; checked?: boolean },
   current?: CurrentWeather,
 ): MinutelyPoint[] {
   const currentHasRain = current ? isRainWeatherCode(current.weatherCode) : false;
@@ -642,6 +726,14 @@ function syncedMinutely(
     ...m,
     precip: m.precip > 0 ? m.precip * 1.3 : m.precip,
   }));
+
+  if (radar.checked && !radar.hasRain && !currentHasRain) {
+    return boosted.map((m) => ({
+      ...m,
+      precip: 0,
+      precipProb: Math.min(m.precipProb, 20),
+    }));
+  }
 
   // If the current minute is showing rain (radar overhead or current conditions
   // say it's raining) but the model only registers a "trace" amount (< Light
@@ -684,7 +776,7 @@ function syncedMinutely(
  */
 function describeMinuteCast(
   minutely: MinutelyPoint[],
-  radar: { intensity: number; hasRain: boolean },
+  radar: { intensity: number; hasRain: boolean; checked?: boolean },
   current?: CurrentWeather,
 ): string {
   const THRESHOLD = 0.001;
@@ -768,11 +860,7 @@ function describeMinuteCast(
   void lightMinutes;
 
   const noun =
-    intensity === "heavy"
-      ? "Heavy rain"
-      : intensity === "moderate"
-        ? "Rain"
-        : "Light rain";
+    intensity === "heavy" ? "Heavy rain" : intensity === "moderate" ? "Rain" : "Light rain";
 
   const variation = variesHeavy
     ? ", heavy at times,"

@@ -19,6 +19,7 @@ export type CurrentWeather = {
   humidity: number;
   pressure: number;
   windSpeed: number;
+  windGust: number;
   windDirection: number;
   dewPoint: number;
   uvIndex: number;
@@ -45,6 +46,12 @@ export type HourlyPoint = {
   precip: number;
   weatherCode: number;
   windSpeed: number;
+  windGust: number;
+  apparent: number;
+  humidity: number;
+  dewPoint: number;
+  pressure: number;
+  uvIndex: number;
   isDay: boolean;
   cloudCover: number;
 };
@@ -65,9 +72,16 @@ export function rainCodeFromIntensity(intensity: number): number {
   return 61;
 }
 
+export function dryWeatherCodeFromCloud(cloudCover: number): number {
+  if (cloudCover >= 88) return 3;
+  if (cloudCover >= 45) return 2;
+  if (cloudCover >= 20) return 1;
+  return 0;
+}
+
 export function syncCurrentWeather(
   current: CurrentWeather,
-  radar: { intensity: number; hasRain: boolean },
+  radar: { intensity: number; hasRain: boolean; checked?: boolean },
   satelliteCloudCover: number | null,
 ): CurrentWeather {
   if (radar.hasRain) {
@@ -78,9 +92,18 @@ export function syncCurrentWeather(
     };
   }
 
+  const cloudCover = satelliteCloudCover ?? current.cloudCover;
+  if (radar.checked && isRainWeatherCode(current.weatherCode)) {
+    return {
+      ...current,
+      weatherCode: dryWeatherCodeFromCloud(cloudCover),
+      cloudCover,
+    };
+  }
+
   return {
     ...current,
-    cloudCover: satelliteCloudCover ?? current.cloudCover,
+    cloudCover,
   };
 }
 
@@ -97,9 +120,9 @@ export async function fetchWeather(lat: number, lon: number, forecastDays = 16) 
     latitude: String(lat),
     longitude: String(lon),
     current:
-      "temperature_2m,apparent_temperature,relative_humidity_2m,pressure_msl,wind_speed_10m,wind_direction_10m,dew_point_2m,uv_index,cloud_cover,is_day,weather_code",
+      "temperature_2m,apparent_temperature,relative_humidity_2m,pressure_msl,wind_speed_10m,wind_gusts_10m,wind_direction_10m,dew_point_2m,uv_index,cloud_cover,is_day,weather_code",
     hourly:
-      "temperature_2m,precipitation_probability,precipitation,weather_code,wind_speed_10m,is_day,cloud_cover",
+      "temperature_2m,apparent_temperature,relative_humidity_2m,dew_point_2m,pressure_msl,uv_index,precipitation_probability,precipitation,weather_code,wind_speed_10m,wind_gusts_10m,is_day,cloud_cover",
     daily:
       "weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,sunrise,sunset",
     minutely_15: "precipitation,precipitation_probability",
@@ -122,6 +145,7 @@ export async function fetchWeather(lat: number, lon: number, forecastDays = 16) 
     humidity: d.current.relative_humidity_2m,
     pressure: d.current.pressure_msl,
     windSpeed: d.current.wind_speed_10m,
+    windGust: d.current.wind_gusts_10m ?? d.current.wind_speed_10m,
     windDirection: d.current.wind_direction_10m,
     dewPoint: d.current.dew_point_2m,
     uvIndex: d.current.uv_index,
@@ -148,6 +172,12 @@ export async function fetchWeather(lat: number, lon: number, forecastDays = 16) 
     precip: d.hourly.precipitation[i] ?? 0,
     weatherCode: d.hourly.weather_code[i],
     windSpeed: d.hourly.wind_speed_10m[i],
+    windGust: d.hourly.wind_gusts_10m?.[i] ?? d.hourly.wind_speed_10m[i],
+    apparent: d.hourly.apparent_temperature?.[i] ?? d.hourly.temperature_2m[i],
+    humidity: d.hourly.relative_humidity_2m?.[i] ?? 0,
+    dewPoint: d.hourly.dew_point_2m?.[i] ?? d.hourly.temperature_2m[i],
+    pressure: d.hourly.pressure_msl?.[i] ?? 0,
+    uvIndex: d.hourly.uv_index?.[i] ?? 0,
     isDay: d.hourly.is_day?.[i] === 1,
     cloudCover: d.hourly.cloud_cover?.[i] ?? 0,
   }));
@@ -281,13 +311,24 @@ export type Earthquake = {
   coords: [number, number, number];
 };
 
+type UsgsFeature = {
+  id: string;
+  properties: {
+    mag?: number;
+    place?: string;
+    time: number;
+    url: string;
+  };
+  geometry: { coordinates: [number, number, number] };
+};
+
 export async function fetchEarthquakes(): Promise<Earthquake[]> {
   const res = await fetch(
     "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson",
   );
   if (!res.ok) return [];
   const data = await res.json();
-  return (data.features as any[])
+  return ((data.features ?? []) as UsgsFeature[])
     .map((f) => ({
       id: f.id,
       mag: f.properties.mag ?? 0,

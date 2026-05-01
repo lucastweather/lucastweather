@@ -205,10 +205,13 @@ export default function RadarMap({
         setRadarFrames(all);
         setPastCount(past.length);
 
-        const currentRadarFrame = nowcast[nowcast.length - 1] ?? past[past.length - 1];
+        // Current-condition sync must use the latest observed radar frame, not
+        // a future nowcast frame, otherwise MinuteCast/current/hourly can show
+        // rain before it is actually over the user's area.
+        const currentRadarFrame = past[past.length - 1] ?? nowcast[0];
         if (currentRadarFrame && onNowcast) {
           probeTile(d.host, currentRadarFrame.path, lat, lon, "radar")
-            .then((alpha) => onNowcast(alpha, alpha > 0.01))
+            .then((alpha) => onNowcast(alpha, alpha >= 0.035))
             .catch(() => onNowcast(0, false));
         } else if (onNowcast) {
           onNowcast(0, false);

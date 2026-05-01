@@ -32,24 +32,24 @@ export default function HourlyForecast({
       <div className="overflow-x-auto -mx-2 px-2">
         <div className="flex gap-2 min-w-max pb-2">
           {upcoming.map((h, i) => {
-            const visual = i === 0 && current
-              ? {
-                  weatherCode: current.weatherCode,
-                  cloudCover: current.cloudCover,
-                  isDay: current.isDay,
-                }
-              : h;
+            const visual =
+              i === 0 && current
+                ? {
+                    weatherCode: current.weatherCode,
+                    cloudCover: current.cloudCover,
+                    isDay: current.isDay,
+                  }
+                : h;
             const { hour: hr } = parseLocalDateTime(h.time);
             const label =
-              i === 0
-                ? "Now"
-                : `${hr === 0 ? 12 : hr > 12 ? hr - 12 : hr}${hr < 12 ? "a" : "p"}`;
+              i === 0 ? "Now" : `${hr === 0 ? 12 : hr > 12 ? hr - 12 : hr}${hr < 12 ? "a" : "p"}`;
             const showPrecip = h.precipProb > 40;
+            const gust = Math.round(h.windGust ?? h.windSpeed);
             return (
               <div
                 key={h.time}
                 className="chip flex flex-col items-center gap-1 px-3 py-3 min-w-[64px]"
-                title={`${weatherLabel(visual.weatherCode, visual.cloudCover, visual.isDay)} · ${Math.round(h.temp)}°F${showPrecip ? ` · ${h.precipProb}% precip` : ""} · ${Math.round(h.windSpeed)} mph wind`}
+                title={`${weatherLabel(visual.weatherCode, visual.cloudCover, visual.isDay)} · ${Math.round(h.temp)}°F${showPrecip ? ` · ${h.precipProb}% precip` : ""} · ${Math.round(h.windSpeed)} mph wind · ${gust} mph gusts`}
               >
                 <div className="text-[11px] font-mono text-muted-foreground">{label}</div>
                 <WeatherIcon
@@ -62,12 +62,11 @@ export default function HourlyForecast({
                 <div className="text-[10px] font-mono text-info min-h-[14px]">
                   {showPrecip ? `${h.precipProb}%` : ""}
                 </div>
+                <div className="text-[10px] font-mono text-muted-foreground">G {gust}</div>
               </div>
             );
           })}
-          {loading && (
-            <div className="text-sm text-muted-foreground py-4">Loading hourly…</div>
-          )}
+          {loading && <div className="text-sm text-muted-foreground py-4">Loading hourly…</div>}
         </div>
       </div>
     </section>
