@@ -679,6 +679,14 @@ function syncedMinutely(
     precip: m.precip > 0 ? m.precip * 1.3 : m.precip,
   }));
 
+  if (radar.checked && !radar.hasRain && !currentHasRain) {
+    return boosted.map((m) => ({
+      ...m,
+      precip: 0,
+      precipProb: Math.min(m.precipProb, 20),
+    }));
+  }
+
   // If the current minute is showing rain (radar overhead or current conditions
   // say it's raining) but the model only registers a "trace" amount (< Light
   // threshold of 0.005 in/min), bump it up to at least Light, and to Moderate
