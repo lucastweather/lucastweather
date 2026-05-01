@@ -29,6 +29,7 @@ import {
   weatherLabel,
   forecastNarrative,
   isRainWeatherCode,
+  dryWeatherCodeFromCloud,
   syncCurrentWeather,
   type CurrentWeather,
   type DailyForecast,
@@ -74,7 +75,7 @@ function WeatherPage() {
   const [err, setErr] = useState<string | null>(null);
   // Radar-driven nowcast intensity (0..1) — used to sync MinuteCast so it
   // never claims "no rain" when the radar is showing precipitation overhead.
-  const [radarRain, setRadarRain] = useState<{ intensity: number; hasRain: boolean }>({
+  const [radarRain, setRadarRain] = useState<{ intensity: number; hasRain: boolean; checked?: boolean }>({
     intensity: 0,
     hasRain: false,
   });
