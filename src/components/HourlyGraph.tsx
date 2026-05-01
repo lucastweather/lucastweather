@@ -26,7 +26,7 @@ const GRAPH_MODES = [
     unit: "in",
     color: "var(--primary)",
     value: (h: HourlyPoint) => h.precip,
-    format: (v: number) => `${v.toFixed(2)}\"`,
+    format: (v: number) => `${v.toFixed(2)}"`,
   },
   {
     key: "wind",
