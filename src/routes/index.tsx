@@ -630,6 +630,38 @@ function ForecastRow({
   );
 }
 
+function syncHourlyToRadar(
+  hourly: HourlyPoint[],
+  radar: { intensity: number; hasRain: boolean; checked?: boolean },
+  current?: CurrentWeather,
+): HourlyPoint[] {
+  if (!current || hourly.length === 0) return hourly;
+  return hourly.map((hour, index) => {
+    if (index !== 0) return hour;
+    if (radar.hasRain) {
+      return {
+        ...hour,
+        precip: Math.max(hour.precip, 0.03),
+        precipProb: Math.max(hour.precipProb, 80),
+        weatherCode: current.weatherCode,
+        cloudCover: current.cloudCover,
+      };
+    }
+    if (radar.checked) {
+      return {
+        ...hour,
+        precip: 0,
+        precipProb: Math.min(hour.precipProb, 20),
+        weatherCode: isRainWeatherCode(hour.weatherCode)
+          ? dryWeatherCodeFromCloud(current.cloudCover)
+          : hour.weatherCode,
+        cloudCover: current.cloudCover,
+      };
+    }
+    return hour;
+  });
+}
+
 /**
  * Returns the minutely series, but if the radar shows precipitation overhead
  * and the model says zero, lift the series to a light baseline so the chart
