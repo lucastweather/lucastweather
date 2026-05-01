@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Wind,
   Droplets,
@@ -83,6 +83,12 @@ function WeatherPage() {
   // model cloudCover for current-conditions iconography so the icon matches
   // what's actually overhead right now.
   const [satClouds, setSatClouds] = useState<number | null>(null);
+  const handleNowcast = useCallback((intensity: number, hasRain: boolean) => {
+    setRadarRain({ intensity, hasRain, checked: true });
+  }, []);
+  const handleSatelliteClouds = useCallback((pct: number) => {
+    setSatClouds(pct);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -252,8 +258,8 @@ function WeatherPage() {
           lat={city.latitude}
           lon={city.longitude}
           showForecast={true}
-          onNowcast={(intensity, hasRain) => setRadarRain({ intensity, hasRain, checked: true })}
-          onSatelliteClouds={(pct) => setSatClouds(pct)}
+          onNowcast={handleNowcast}
+          onSatelliteClouds={handleSatelliteClouds}
         />
       </section>
 
