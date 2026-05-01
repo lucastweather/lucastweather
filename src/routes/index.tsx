@@ -106,6 +106,9 @@ function WeatherPage() {
   const currentWeather = data
     ? syncCurrentWeather(data.current, radarRain, satClouds)
     : null;
+  const syncedHourly = data
+    ? syncHourlyToRadar(data.hourly, radarRain, currentWeather ?? undefined)
+    : [];
 
   return (
     <PageShell>
@@ -160,11 +163,11 @@ function WeatherPage() {
 
         <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           <Metric icon={<Wind className="size-4" />} label="Wind" value={data ? `${Math.round(data.current.windSpeed)} mph` : "—"} />
+          <Metric icon={<Wind className="size-4" />} label="Gusts" value={data ? `${Math.round(data.current.windGust)} mph` : "—"} />
           <Metric icon={<Droplets className="size-4" />} label="Humidity" value={data ? `${data.current.humidity}%` : "—"} />
           <Metric icon={<Gauge className="size-4" />} label="Pressure" value={data ? `${data.current.pressure.toFixed(2)} in` : "—"} />
           <Metric icon={<Compass className="size-4" />} label="Wind Dir" value={data ? `${data.current.windDirection}°` : "—"} />
           <Metric icon={<Thermometer className="size-4" />} label="Dew Point" value={data ? `${Math.round(data.current.dewPoint)}°F` : "—"} />
-          <Metric icon={<Sun className="size-4" />} label="UV Index" value={data ? `${data.current.uvIndex}` : "—"} />
         </div>
       </section>
 
@@ -188,7 +191,7 @@ function WeatherPage() {
 
       {/* Hourly forecast — FREE */}
       <HourlyForecast
-        hourly={data?.hourly ?? []}
+        hourly={syncedHourly}
         loading={!data}
         utcOffsetSeconds={data?.utcOffsetSeconds ?? 0}
           current={currentWeather ?? undefined}
@@ -209,7 +212,7 @@ function WeatherPage() {
         </div>
         <ul className="divide-y divide-border">
           {(data?.daily ?? []).slice(0, subscribed ? 16 : 7).map((d, i) => (
-            <ForecastRow key={d.date} day={d} index={i} hourly={data?.hourly ?? []} />
+            <ForecastRow key={d.date} day={d} index={i} hourly={syncedHourly} />
           ))}
           {!data && <li className="text-sm text-muted-foreground py-2">Loading forecast…</li>}
         </ul>
@@ -248,7 +251,7 @@ function WeatherPage() {
           lat={city.latitude}
           lon={city.longitude}
           showForecast={true}
-          onNowcast={(intensity, hasRain) => setRadarRain({ intensity, hasRain })}
+          onNowcast={(intensity, hasRain) => setRadarRain({ intensity, hasRain, checked: true })}
           onSatelliteClouds={(pct) => setSatClouds(pct)}
         />
       </section>
