@@ -32,18 +32,17 @@ export default function HourlyForecast({
       <div className="overflow-x-auto -mx-2 px-2">
         <div className="flex gap-2 min-w-max pb-2">
           {upcoming.map((h, i) => {
-            const visual = i === 0 && current
-              ? {
-                  weatherCode: current.weatherCode,
-                  cloudCover: current.cloudCover,
-                  isDay: current.isDay,
-                }
-              : h;
+            const visual =
+              i === 0 && current
+                ? {
+                    weatherCode: current.weatherCode,
+                    cloudCover: current.cloudCover,
+                    isDay: current.isDay,
+                  }
+                : h;
             const { hour: hr } = parseLocalDateTime(h.time);
             const label =
-              i === 0
-                ? "Now"
-                : `${hr === 0 ? 12 : hr > 12 ? hr - 12 : hr}${hr < 12 ? "a" : "p"}`;
+              i === 0 ? "Now" : `${hr === 0 ? 12 : hr > 12 ? hr - 12 : hr}${hr < 12 ? "a" : "p"}`;
             const showPrecip = h.precipProb > 40;
             const gust = Math.round(h.windGust ?? h.windSpeed);
             return (
@@ -67,9 +66,7 @@ export default function HourlyForecast({
               </div>
             );
           })}
-          {loading && (
-            <div className="text-sm text-muted-foreground py-4">Loading hourly…</div>
-          )}
+          {loading && <div className="text-sm text-muted-foreground py-4">Loading hourly…</div>}
         </div>
       </div>
     </section>

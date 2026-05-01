@@ -4,16 +4,86 @@ import type { HourlyPoint } from "@/lib/weather";
 import { parseLocalDateTime } from "@/lib/date";
 
 const GRAPH_MODES = [
-  { key: "temp", label: "Temp", unit: "°F", color: "var(--warning)", value: (h: HourlyPoint) => h.temp, format: (v: number) => `${Math.round(v)}°F` },
-  { key: "feels", label: "Feels", unit: "°F", color: "var(--danger)", value: (h: HourlyPoint) => h.apparent, format: (v: number) => `${Math.round(v)}°F` },
-  { key: "rain", label: "Rain", unit: "in", color: "var(--primary)", value: (h: HourlyPoint) => h.precip, format: (v: number) => `${v.toFixed(2)}\"` },
-  { key: "wind", label: "Wind", unit: "mph", color: "var(--success)", value: (h: HourlyPoint) => h.windSpeed, format: (v: number) => `${Math.round(v)} mph` },
-  { key: "gusts", label: "Gusts", unit: "mph", color: "var(--info)", value: (h: HourlyPoint) => h.windGust ?? h.windSpeed, format: (v: number) => `${Math.round(v)} mph` },
-  { key: "humidity", label: "Humidity", unit: "%", color: "var(--primary)", value: (h: HourlyPoint) => h.humidity, format: (v: number) => `${Math.round(v)}%` },
-  { key: "dew", label: "Dew Pt", unit: "°F", color: "var(--success)", value: (h: HourlyPoint) => h.dewPoint, format: (v: number) => `${Math.round(v)}°F` },
-  { key: "pressure", label: "Pressure", unit: "in", color: "var(--muted-foreground)", value: (h: HourlyPoint) => h.pressure, format: (v: number) => `${v.toFixed(2)} in` },
-  { key: "uv", label: "UV", unit: "", color: "var(--warning)", value: (h: HourlyPoint) => h.uvIndex, format: (v: number) => `${Math.round(v)}` },
-  { key: "clouds", label: "Clouds", unit: "%", color: "var(--foreground)", value: (h: HourlyPoint) => h.cloudCover, format: (v: number) => `${Math.round(v)}%` },
+  {
+    key: "temp",
+    label: "Temp",
+    unit: "°F",
+    color: "var(--warning)",
+    value: (h: HourlyPoint) => h.temp,
+    format: (v: number) => `${Math.round(v)}°F`,
+  },
+  {
+    key: "feels",
+    label: "Feels",
+    unit: "°F",
+    color: "var(--danger)",
+    value: (h: HourlyPoint) => h.apparent,
+    format: (v: number) => `${Math.round(v)}°F`,
+  },
+  {
+    key: "rain",
+    label: "Rain",
+    unit: "in",
+    color: "var(--primary)",
+    value: (h: HourlyPoint) => h.precip,
+    format: (v: number) => `${v.toFixed(2)}\"`,
+  },
+  {
+    key: "wind",
+    label: "Wind",
+    unit: "mph",
+    color: "var(--success)",
+    value: (h: HourlyPoint) => h.windSpeed,
+    format: (v: number) => `${Math.round(v)} mph`,
+  },
+  {
+    key: "gusts",
+    label: "Gusts",
+    unit: "mph",
+    color: "var(--info)",
+    value: (h: HourlyPoint) => h.windGust ?? h.windSpeed,
+    format: (v: number) => `${Math.round(v)} mph`,
+  },
+  {
+    key: "humidity",
+    label: "Humidity",
+    unit: "%",
+    color: "var(--primary)",
+    value: (h: HourlyPoint) => h.humidity,
+    format: (v: number) => `${Math.round(v)}%`,
+  },
+  {
+    key: "dew",
+    label: "Dew Pt",
+    unit: "°F",
+    color: "var(--success)",
+    value: (h: HourlyPoint) => h.dewPoint,
+    format: (v: number) => `${Math.round(v)}°F`,
+  },
+  {
+    key: "pressure",
+    label: "Pressure",
+    unit: "in",
+    color: "var(--muted-foreground)",
+    value: (h: HourlyPoint) => h.pressure,
+    format: (v: number) => `${v.toFixed(2)} in`,
+  },
+  {
+    key: "uv",
+    label: "UV",
+    unit: "",
+    color: "var(--warning)",
+    value: (h: HourlyPoint) => h.uvIndex,
+    format: (v: number) => `${Math.round(v)}`,
+  },
+  {
+    key: "clouds",
+    label: "Clouds",
+    unit: "%",
+    color: "var(--foreground)",
+    value: (h: HourlyPoint) => h.cloudCover,
+    format: (v: number) => `${Math.round(v)}%`,
+  },
 ] as const;
 
 type GraphMode = (typeof GRAPH_MODES)[number]["key"];
@@ -44,9 +114,7 @@ export default function HourlyGraph({ hours }: { hours: HourlyPoint[] }) {
   const min = mode === "rain" || mode === "uv" ? 0 : vMin - pad;
   const max = Math.max(min + 1, vMax + pad);
   const y = (v: number) => 10 + (1 - (v - min) / (max - min)) * 60;
-  const path = values
-    .map((v, i) => `${i === 0 ? "M" : "L"} ${i * stepX} ${y(v)}`)
-    .join(" ");
+  const path = values.map((v, i) => `${i === 0 ? "M" : "L"} ${i * stepX} ${y(v)}`).join(" ");
   const areaPath = `${path} L ${(hours.length - 1) * stepX} 75 L 0 75 Z`;
   const maxPrecip = Math.max(0.02, ...hours.map((h) => h.precip));
   const hover = hoverIdx !== null ? hours[hoverIdx] : null;
@@ -62,7 +130,8 @@ export default function HourlyGraph({ hours }: { hours: HourlyPoint[] }) {
       <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground mb-3">
         <span className="flex items-center gap-1.5">
           <span className="size-2 rounded-full" style={{ backgroundColor: active.color }} />
-          {active.label}{active.unit ? ` (${active.unit})` : ""}
+          {active.label}
+          {active.unit ? ` (${active.unit})` : ""}
         </span>
         <span className="flex items-center gap-1.5">
           <span className="size-2 rounded-full bg-primary" /> Rainfall bars
@@ -75,7 +144,9 @@ export default function HourlyGraph({ hours }: { hours: HourlyPoint[] }) {
             type="button"
             onClick={() => setMode(m.key)}
             className={`chip px-2.5 py-1 text-[10px] font-mono transition-colors ${
-              mode === m.key ? "bg-primary/20 text-primary border-primary/40" : "text-muted-foreground hover:text-foreground hover:bg-accent/40"
+              mode === m.key
+                ? "bg-primary/20 text-primary border-primary/40"
+                : "text-muted-foreground hover:text-foreground hover:bg-accent/40"
             }`}
           >
             {m.label}
@@ -207,7 +278,8 @@ export default function HourlyGraph({ hours }: { hours: HourlyPoint[] }) {
               {active.label}: {active.format(hoverValue)}
             </div>
             <div className="font-mono text-muted-foreground">
-              Wind {Math.round(hover.windSpeed)} · Gust {Math.round(hover.windGust ?? hover.windSpeed)} mph
+              Wind {Math.round(hover.windSpeed)} · Gust{" "}
+              {Math.round(hover.windGust ?? hover.windSpeed)} mph
             </div>
             {(hover.precipProb > 20 || hover.precip > 0) && (
               <div className="font-mono text-info">
