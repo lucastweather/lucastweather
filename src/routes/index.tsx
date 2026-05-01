@@ -21,7 +21,7 @@ import DailyRecommendations from "@/components/DailyRecommendations";
 import FavoriteCities from "@/components/FavoriteCities";
 import WeatherIcon from "@/components/WeatherIcon";
 import { useCity } from "@/lib/city-store";
-import { parseCalendarDate, localDateKey } from "@/lib/date";
+import { parseCalendarDate, localDateKey, parseLocalDateTime, cityNow } from "@/lib/date";
 import { useSubscription } from "@/lib/auth-store";
 import {
   fetchWeather,
@@ -114,7 +114,7 @@ function WeatherPage() {
     ? syncCurrentWeather(data.current, radarRain, satClouds)
     : null;
   const syncedHourly = data
-    ? syncHourlyToRadar(data.hourly, radarRain, currentWeather ?? undefined)
+    ? syncHourlyToRadar(data.hourly, radarRain, data.utcOffsetSeconds, currentWeather ?? undefined)
     : [];
 
   return (
