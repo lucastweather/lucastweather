@@ -91,6 +91,10 @@ function WeatherPage() {
   const handleSatelliteClouds = useCallback((pct: number) => {
     setSatClouds(pct);
   }, []);
+  // How wide of a window around "now" the radar observation should override
+  // the model hourly forecast. Tunable so users can tighten/loosen the sync to
+  // match what they see on the radar map.
+  const [syncWindowMin, setSyncWindowMin] = useState<number>(60);
 
   useEffect(() => {
     let cancelled = false;
@@ -114,7 +118,13 @@ function WeatherPage() {
   const filteredQuakes = quakes.filter((q) => q.mag >= magFilter).slice(0, 10);
   const currentWeather = data ? syncCurrentWeather(data.current, radarRain, satClouds) : null;
   const syncedHourly = data
-    ? syncHourlyToRadar(data.hourly, radarRain, data.utcOffsetSeconds, currentWeather ?? undefined)
+    ? syncHourlyToRadar(
+        data.hourly,
+        radarRain,
+        data.utcOffsetSeconds,
+        currentWeather ?? undefined,
+        syncWindowMin,
+      )
     : [];
 
   return (
@@ -222,13 +232,35 @@ function WeatherPage() {
       <WeatherCameras cityName={city.name} lat={city.latitude} lon={city.longitude} />
 
       {/* Hourly forecast — FREE */}
-      <HourlyForecast
-        hourly={syncedHourly}
-        loading={!data}
-        utcOffsetSeconds={data?.utcOffsetSeconds ?? 0}
-        current={currentWeather ?? undefined}
-      />
-
+      <div className="space-y-2">
+        <div className="flex items-center justify-between flex-wrap gap-2 px-1">
+          <div className="text-xs text-muted-foreground font-mono uppercase tracking-wider">
+            Radar → Hourly sync window
+          </div>
+          <div className="flex gap-1">
+            {[30, 60, 90, 120].map((m) => (
+              <button
+                key={m}
+                onClick={() => setSyncWindowMin(m)}
+                className={`px-2.5 py-1 rounded-md text-xs font-mono ${
+                  syncWindowMin === m
+                    ? "bg-primary/20 text-primary border border-primary/30"
+                    : "chip text-muted-foreground hover:text-foreground"
+                }`}
+                title={`Override hourly forecast within ±${m} min of now using live radar`}
+              >
+                ±{m}m
+              </button>
+            ))}
+          </div>
+        </div>
+        <HourlyForecast
+          hourly={syncedHourly}
+          loading={!data}
+          utcOffsetSeconds={data?.utcOffsetSeconds ?? 0}
+          current={currentWeather ?? undefined}
+        />
+      </div>
       {/* 7-day forecast (free) + 16-day teaser (premium) */}
       <section className="panel p-6">
         <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
@@ -680,12 +712,14 @@ function syncHourlyToRadar(
   radar: { intensity: number; hasRain: boolean; checked?: boolean },
   utcOffsetSeconds = 0,
   current?: CurrentWeather,
+  windowMin = 60,
 ): HourlyPoint[] {
   if (!current || hourly.length === 0) return hourly;
   const now = cityNow(utcOffsetSeconds).getTime();
-  return hourly.map((hour, index) => {
+  const windowMs = Math.max(15, windowMin) * 60_000;
+  return hourly.map((hour) => {
     const hourTime = parseLocalDateTime(hour.time).date.getTime();
-    if (hourTime < now - 30 * 60_000 || hourTime > now + 90 * 60_000) return hour;
+    if (hourTime < now - windowMs || hourTime > now + windowMs) return hour;
     if (radar.hasRain) {
       return {
         ...hour,

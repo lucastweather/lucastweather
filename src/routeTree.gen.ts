@@ -11,10 +11,12 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as RadarRouteImport } from './routes/radar'
 import { Route as PremiumRouteImport } from './routes/premium'
+import { Route as NewsRouteImport } from './routes/news'
 import { Route as ApiRouteImport } from './routes/api'
 import { Route as AlertsRouteImport } from './routes/alerts'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as NewsIdRouteImport } from './routes/news.$id'
 import { Route as ApiSubscriptionCheckRouteImport } from './routes/api.subscription-check'
 import { Route as ApiKeysRouteImport } from './routes/api.keys'
 import { Route as ApiCheckoutRouteImport } from './routes/api.checkout'
@@ -30,6 +32,11 @@ const RadarRoute = RadarRouteImport.update({
 const PremiumRoute = PremiumRouteImport.update({
   id: '/premium',
   path: '/premium',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NewsRoute = NewsRouteImport.update({
+  id: '/news',
+  path: '/news',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiRoute = ApiRouteImport.update({
@@ -51,6 +58,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const NewsIdRoute = NewsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => NewsRoute,
 } as any)
 const ApiSubscriptionCheckRoute = ApiSubscriptionCheckRouteImport.update({
   id: '/subscription-check',
@@ -88,12 +100,14 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRoute
   '/alerts': typeof AlertsRoute
   '/api': typeof ApiRouteWithChildren
+  '/news': typeof NewsRouteWithChildren
   '/premium': typeof PremiumRoute
   '/radar': typeof RadarRoute
   '/api/billing-portal': typeof ApiBillingPortalRoute
   '/api/checkout': typeof ApiCheckoutRoute
   '/api/keys': typeof ApiKeysRouteWithChildren
   '/api/subscription-check': typeof ApiSubscriptionCheckRoute
+  '/news/$id': typeof NewsIdRoute
   '/api/keys/revoke': typeof ApiKeysRevokeRoute
   '/api/public/v1/current': typeof ApiPublicV1CurrentRoute
 }
@@ -102,12 +116,14 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminRoute
   '/alerts': typeof AlertsRoute
   '/api': typeof ApiRouteWithChildren
+  '/news': typeof NewsRouteWithChildren
   '/premium': typeof PremiumRoute
   '/radar': typeof RadarRoute
   '/api/billing-portal': typeof ApiBillingPortalRoute
   '/api/checkout': typeof ApiCheckoutRoute
   '/api/keys': typeof ApiKeysRouteWithChildren
   '/api/subscription-check': typeof ApiSubscriptionCheckRoute
+  '/news/$id': typeof NewsIdRoute
   '/api/keys/revoke': typeof ApiKeysRevokeRoute
   '/api/public/v1/current': typeof ApiPublicV1CurrentRoute
 }
@@ -117,12 +133,14 @@ export interface FileRoutesById {
   '/admin': typeof AdminRoute
   '/alerts': typeof AlertsRoute
   '/api': typeof ApiRouteWithChildren
+  '/news': typeof NewsRouteWithChildren
   '/premium': typeof PremiumRoute
   '/radar': typeof RadarRoute
   '/api/billing-portal': typeof ApiBillingPortalRoute
   '/api/checkout': typeof ApiCheckoutRoute
   '/api/keys': typeof ApiKeysRouteWithChildren
   '/api/subscription-check': typeof ApiSubscriptionCheckRoute
+  '/news/$id': typeof NewsIdRoute
   '/api/keys/revoke': typeof ApiKeysRevokeRoute
   '/api/public/v1/current': typeof ApiPublicV1CurrentRoute
 }
@@ -133,12 +151,14 @@ export interface FileRouteTypes {
     | '/admin'
     | '/alerts'
     | '/api'
+    | '/news'
     | '/premium'
     | '/radar'
     | '/api/billing-portal'
     | '/api/checkout'
     | '/api/keys'
     | '/api/subscription-check'
+    | '/news/$id'
     | '/api/keys/revoke'
     | '/api/public/v1/current'
   fileRoutesByTo: FileRoutesByTo
@@ -147,12 +167,14 @@ export interface FileRouteTypes {
     | '/admin'
     | '/alerts'
     | '/api'
+    | '/news'
     | '/premium'
     | '/radar'
     | '/api/billing-portal'
     | '/api/checkout'
     | '/api/keys'
     | '/api/subscription-check'
+    | '/news/$id'
     | '/api/keys/revoke'
     | '/api/public/v1/current'
   id:
@@ -161,12 +183,14 @@ export interface FileRouteTypes {
     | '/admin'
     | '/alerts'
     | '/api'
+    | '/news'
     | '/premium'
     | '/radar'
     | '/api/billing-portal'
     | '/api/checkout'
     | '/api/keys'
     | '/api/subscription-check'
+    | '/news/$id'
     | '/api/keys/revoke'
     | '/api/public/v1/current'
   fileRoutesById: FileRoutesById
@@ -176,6 +200,7 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRoute
   AlertsRoute: typeof AlertsRoute
   ApiRoute: typeof ApiRouteWithChildren
+  NewsRoute: typeof NewsRouteWithChildren
   PremiumRoute: typeof PremiumRoute
   RadarRoute: typeof RadarRoute
 }
@@ -194,6 +219,13 @@ declare module '@tanstack/react-router' {
       path: '/premium'
       fullPath: '/premium'
       preLoaderRoute: typeof PremiumRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/news': {
+      id: '/news'
+      path: '/news'
+      fullPath: '/news'
+      preLoaderRoute: typeof NewsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api': {
@@ -223,6 +255,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/news/$id': {
+      id: '/news/$id'
+      path: '/$id'
+      fullPath: '/news/$id'
+      preLoaderRoute: typeof NewsIdRouteImport
+      parentRoute: typeof NewsRoute
     }
     '/api/subscription-check': {
       id: '/api/subscription-check'
@@ -298,11 +337,22 @@ const ApiRouteChildren: ApiRouteChildren = {
 
 const ApiRouteWithChildren = ApiRoute._addFileChildren(ApiRouteChildren)
 
+interface NewsRouteChildren {
+  NewsIdRoute: typeof NewsIdRoute
+}
+
+const NewsRouteChildren: NewsRouteChildren = {
+  NewsIdRoute: NewsIdRoute,
+}
+
+const NewsRouteWithChildren = NewsRoute._addFileChildren(NewsRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
   AlertsRoute: AlertsRoute,
   ApiRoute: ApiRouteWithChildren,
+  NewsRoute: NewsRouteWithChildren,
   PremiumRoute: PremiumRoute,
   RadarRoute: RadarRoute,
 }
