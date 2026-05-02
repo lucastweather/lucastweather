@@ -142,48 +142,85 @@ function WeatherPage() {
       )}
 
       {/* Current conditions */}
-      <section className="panel p-6 lg:p-8">
-        <div className="font-mono text-xs text-muted-foreground tracking-wider flex items-center gap-2">
-          <span>
+      <section className="panel panel-hero p-6 lg:p-9 relative overflow-hidden">
+        {/* decorative glow */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -top-32 -right-24 size-[420px] rounded-full opacity-40 blur-3xl"
+          style={{ background: "radial-gradient(closest-side, var(--primary), transparent 70%)" }}
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -bottom-40 -left-20 size-[360px] rounded-full opacity-25 blur-3xl"
+          style={{ background: "radial-gradient(closest-side, oklch(0.7 0.18 295), transparent 70%)" }}
+        />
+
+        <div className="relative font-mono text-[11px] text-muted-foreground tracking-[0.18em] uppercase flex items-center gap-2 flex-wrap">
+          <span className="flex items-center gap-1.5">
+            <MapPin className="size-3.5 text-primary" />
             {city.name}
             {city.admin1 ? `, ${city.admin1}` : ""} · {city.country}
           </span>
-          <span className="chip px-1.5 py-0.5 text-[10px] text-primary border-primary/30 flex items-center gap-1">
+          <span className="chip px-2 py-0.5 text-[10px] text-primary border-primary/40 flex items-center gap-1 normal-case tracking-normal">
             <Sparkles className="size-3" /> AI Ensemble
           </span>
         </div>
-        <div className="mt-3 flex items-center gap-6 flex-wrap">
-          <div className="leading-none">
+
+        <div className="relative mt-5 flex items-center gap-7 flex-wrap">
+          <div className="leading-none relative">
+            <div
+              className="absolute inset-0 -m-3 rounded-full blur-2xl opacity-50"
+              style={{ background: "radial-gradient(closest-side, var(--primary), transparent 70%)" }}
+              aria-hidden
+            />
             {data ? (
               <WeatherIcon
                 code={currentWeather!.weatherCode}
                 isDay={currentWeather!.isDay}
                 cloudCover={currentWeather!.cloudCover}
-                className="size-20"
+                className="size-24 relative drop-shadow-[0_8px_24px_rgba(56,189,248,0.35)]"
               />
             ) : (
-              <WeatherIcon code={2} className="size-20" />
+              <WeatherIcon code={2} className="size-24 relative" />
             )}
           </div>
           <div>
-            <div className="text-6xl font-semibold tracking-tight">
-              {data ? Math.round(data.current.temperature) : "—"}°F
+            <div className="text-7xl font-semibold tracking-tighter text-gradient leading-none">
+              {data ? Math.round(data.current.temperature) : "—"}°
+              <span className="text-3xl font-light text-muted-foreground align-top ml-1">F</span>
             </div>
-            <div className="text-sm text-muted-foreground mt-1">
-              {data
-                ? `Feels like ${Math.round(currentWeather!.apparent)}°F · ${weatherLabel(
-                    currentWeather!.weatherCode,
-                    currentWeather!.cloudCover,
-                    currentWeather!.isDay,
-                  )}${radarRain.hasRain ? " · Radar-synced" : satClouds !== null ? " · Sat-synced" : ""}`
-                : loading
-                  ? "Loading…"
-                  : ""}
+            <div className="text-sm text-muted-foreground mt-2 flex items-center gap-2 flex-wrap">
+              {data ? (
+                <>
+                  <span>Feels like {Math.round(currentWeather!.apparent)}°F</span>
+                  <span className="text-muted-foreground/40">·</span>
+                  <span className="text-foreground/80 font-medium">
+                    {weatherLabel(
+                      currentWeather!.weatherCode,
+                      currentWeather!.cloudCover,
+                      currentWeather!.isDay,
+                    )}
+                  </span>
+                  {radarRain.hasRain ? (
+                    <span className="chip px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-warning border-warning/40 flex items-center gap-1">
+                      <Radar className="size-2.5" /> Radar-synced
+                    </span>
+                  ) : satClouds !== null ? (
+                    <span className="chip px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-info border-info/40">
+                      Sat-synced
+                    </span>
+                  ) : null}
+                </>
+              ) : loading ? (
+                "Loading…"
+              ) : (
+                ""
+              )}
             </div>
           </div>
         </div>
 
-        <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
+        <div className="relative mt-7 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2.5">
           <Metric
             icon={<Wind className="size-4" />}
             label="Wind"
