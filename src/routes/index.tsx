@@ -10,6 +10,11 @@ import {
   ChevronDown,
   AlertCircle,
   Sparkles,
+  Radar,
+  CloudRain,
+  Waves,
+  Globe2,
+  MapPin,
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { Lock, Crown } from "lucide-react";
