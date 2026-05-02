@@ -19,14 +19,21 @@ export default function Header() {
   const { subscribed } = useSubscription();
 
   return (
-    <header className="sticky top-0 z-30 backdrop-blur-xl bg-background/70 border-b border-border">
+    <header className="sticky top-0 z-30 backdrop-blur-xl bg-background/60 border-b border-border/60">
       <div className="max-w-[1400px] mx-auto px-4 lg:px-6 py-3 flex items-center gap-3 flex-wrap">
-        <Link to="/" className="flex items-center gap-2 font-semibold tracking-tight shrink-0">
-          <span className="text-2xl"></span>
-          <span className="text-lg">Lucast Weather</span>
+        <Link to="/" className="flex items-center gap-2.5 font-semibold tracking-tight shrink-0 group">
+          <span className="icon-tile size-9 rounded-xl shadow-glow transition-transform group-hover:scale-105">
+            <Cloud className="size-5" />
+          </span>
+          <span className="flex items-baseline gap-2">
+            <span className="text-lg text-gradient">Lucast</span>
+            <span className="text-lg font-light text-muted-foreground hidden sm:inline">
+              Weather
+            </span>
+          </span>
           {subscribed && (
-            <span className="chip px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-warning border-warning/30">
-              Pro
+            <span className="chip px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-warning border-warning/40 flex items-center gap-1">
+              <Crown className="size-2.5" /> Pro
             </span>
           )}
         </Link>
@@ -42,10 +49,10 @@ export default function Header() {
               <Link
                 key={to}
                 to={to}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium transition-all ${
                   active
-                    ? "bg-primary/15 text-primary border border-primary/30"
-                    : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                    ? "bg-primary/15 text-primary border border-primary/40 shadow-[inset_0_1px_0_0_color-mix(in_oklab,white_10%,transparent)]"
+                    : "text-muted-foreground hover:text-foreground hover:bg-accent/60 border border-transparent"
                 }`}
               >
                 <Icon className="size-4" />
@@ -56,7 +63,7 @@ export default function Header() {
           <Link
             to="/admin"
             search={{ redirect: undefined }}
-            className="ml-1 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm border border-border text-muted-foreground hover:text-foreground hover:bg-accent"
+            className="ml-1 flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-sm border border-border/70 text-muted-foreground hover:text-foreground hover:bg-accent/60 transition-colors"
             aria-label={user ? "Account" : "Sign in"}
             title={user?.email ?? "Sign in"}
           >
