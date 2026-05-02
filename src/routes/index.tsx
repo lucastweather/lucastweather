@@ -118,7 +118,13 @@ function WeatherPage() {
   const filteredQuakes = quakes.filter((q) => q.mag >= magFilter).slice(0, 10);
   const currentWeather = data ? syncCurrentWeather(data.current, radarRain, satClouds) : null;
   const syncedHourly = data
-    ? syncHourlyToRadar(data.hourly, radarRain, data.utcOffsetSeconds, currentWeather ?? undefined)
+    ? syncHourlyToRadar(
+        data.hourly,
+        radarRain,
+        data.utcOffsetSeconds,
+        currentWeather ?? undefined,
+        syncWindowMin,
+      )
     : [];
 
   return (
