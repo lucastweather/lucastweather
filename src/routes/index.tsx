@@ -347,8 +347,9 @@ function WeatherPage() {
       {/* Live radar (synced with MinuteCast below) */}
       <section className="panel p-6">
         <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
-          <span>📡</span> Live Radar
-          <span className="chip px-2 py-0.5 text-[10px] text-primary border-primary/30">
+          <span className="icon-tile"><Radar className="size-4" /></span>
+          Live Radar
+          <span className="chip px-2 py-0.5 text-[10px] text-primary border-primary/40">
             Past 2h + 30-min outlook
           </span>
         </h2>
