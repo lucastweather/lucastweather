@@ -12,7 +12,6 @@ import {
   Sparkles,
   Radar,
   CloudRain,
-  Waves,
   Globe2,
   MapPin,
 } from "lucide-react";
