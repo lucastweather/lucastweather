@@ -570,12 +570,12 @@ function MinuteCastChart({ minutely }: { minutely: MinutelyPoint[] }) {
 
 function Metric({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
-    <div className="chip px-3 py-3 flex flex-col items-center text-center">
-      <div className="text-muted-foreground flex items-center gap-1.5 text-[11px] uppercase tracking-wider">
-        {icon}
+    <div className="chip chip-hover px-3 py-3 flex flex-col items-center text-center group">
+      <div className="text-muted-foreground/90 flex items-center gap-1.5 text-[10px] uppercase tracking-[0.14em]">
+        <span className="text-primary/80 group-hover:text-primary transition-colors">{icon}</span>
         {label}
       </div>
-      <div className="font-mono text-sm mt-1">{value}</div>
+      <div className="font-mono text-sm mt-1.5 text-foreground/95 font-medium">{value}</div>
     </div>
   );
 }
