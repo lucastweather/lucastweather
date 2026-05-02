@@ -418,8 +418,9 @@ function WeatherPage() {
       <section className="panel p-6">
         <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
           <h2 className="text-lg font-semibold flex items-center gap-2">
-            <span>🌍</span> Earthquake Tracker
-            <span className="text-[10px] uppercase tracking-wider chip px-2 py-0.5 text-success">
+            <span className="icon-tile"><Globe2 className="size-4" /></span>
+            Earthquake Tracker
+            <span className="text-[10px] uppercase tracking-wider chip px-2 py-0.5 text-success border-success/40">
               USGS Live
             </span>
           </h2>
