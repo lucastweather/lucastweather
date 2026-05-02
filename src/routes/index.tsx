@@ -91,6 +91,10 @@ function WeatherPage() {
   const handleSatelliteClouds = useCallback((pct: number) => {
     setSatClouds(pct);
   }, []);
+  // How wide of a window around "now" the radar observation should override
+  // the model hourly forecast. Tunable so users can tighten/loosen the sync to
+  // match what they see on the radar map.
+  const [syncWindowMin, setSyncWindowMin] = useState<number>(60);
 
   useEffect(() => {
     let cancelled = false;
