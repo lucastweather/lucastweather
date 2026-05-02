@@ -690,12 +690,14 @@ function syncHourlyToRadar(
   radar: { intensity: number; hasRain: boolean; checked?: boolean },
   utcOffsetSeconds = 0,
   current?: CurrentWeather,
+  windowMin = 60,
 ): HourlyPoint[] {
   if (!current || hourly.length === 0) return hourly;
   const now = cityNow(utcOffsetSeconds).getTime();
-  return hourly.map((hour, index) => {
+  const windowMs = Math.max(15, windowMin) * 60_000;
+  return hourly.map((hour) => {
     const hourTime = parseLocalDateTime(hour.time).date.getTime();
-    if (hourTime < now - 30 * 60_000 || hourTime > now + 90 * 60_000) return hour;
+    if (hourTime < now - windowMs || hourTime > now + windowMs) return hour;
     if (radar.hasRain) {
       return {
         ...hour,
