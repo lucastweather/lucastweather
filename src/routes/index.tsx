@@ -232,13 +232,35 @@ function WeatherPage() {
       <WeatherCameras cityName={city.name} lat={city.latitude} lon={city.longitude} />
 
       {/* Hourly forecast — FREE */}
-      <HourlyForecast
-        hourly={syncedHourly}
-        loading={!data}
-        utcOffsetSeconds={data?.utcOffsetSeconds ?? 0}
-        current={currentWeather ?? undefined}
-      />
-
+      <div className="space-y-2">
+        <div className="flex items-center justify-between flex-wrap gap-2 px-1">
+          <div className="text-xs text-muted-foreground font-mono uppercase tracking-wider">
+            Radar → Hourly sync window
+          </div>
+          <div className="flex gap-1">
+            {[30, 60, 90, 120].map((m) => (
+              <button
+                key={m}
+                onClick={() => setSyncWindowMin(m)}
+                className={`px-2.5 py-1 rounded-md text-xs font-mono ${
+                  syncWindowMin === m
+                    ? "bg-primary/20 text-primary border border-primary/30"
+                    : "chip text-muted-foreground hover:text-foreground"
+                }`}
+                title={`Override hourly forecast within ±${m} min of now using live radar`}
+              >
+                ±{m}m
+              </button>
+            ))}
+          </div>
+        </div>
+        <HourlyForecast
+          hourly={syncedHourly}
+          loading={!data}
+          utcOffsetSeconds={data?.utcOffsetSeconds ?? 0}
+          current={currentWeather ?? undefined}
+        />
+      </div>
       {/* 7-day forecast (free) + 16-day teaser (premium) */}
       <section className="panel p-6">
         <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
