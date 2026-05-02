@@ -42,9 +42,21 @@
 
   --shadow-glow: 0 0 0 1px color-mix(in oklab, var(--primary) 30%, transparent),
     0 8px 32px -12px color-mix(in oklab, var(--primary) 40%, transparent);
-  --gradient-sky: linear-gradient(160deg, oklch(0.2 0.04 250), oklch(0.13 0.03 260));
-  --gradient-card: linear-gradient(180deg, color-mix(in oklab, var(--surface) 85%, transparent),
-    color-mix(in oklab, var(--surface-2) 85%, transparent));
+  --shadow-elevated: 0 1px 0 0 color-mix(in oklab, white 6%, transparent) inset,
+    0 20px 60px -28px color-mix(in oklab, black 70%, transparent),
+    0 8px 24px -16px color-mix(in oklab, var(--primary) 25%, transparent);
+  --gradient-sky: radial-gradient(1200px 700px at 12% -10%, oklch(0.28 0.08 245 / 0.55), transparent 60%),
+    radial-gradient(900px 600px at 100% 10%, oklch(0.26 0.1 295 / 0.35), transparent 55%),
+    linear-gradient(165deg, oklch(0.18 0.035 255), oklch(0.12 0.025 260) 60%, oklch(0.1 0.02 262));
+  --gradient-card: linear-gradient(180deg, color-mix(in oklab, var(--surface) 78%, transparent),
+    color-mix(in oklab, var(--surface-2) 70%, transparent));
+  --gradient-hero: linear-gradient(140deg,
+    color-mix(in oklab, var(--primary) 22%, var(--surface)) 0%,
+    color-mix(in oklab, var(--surface) 92%, transparent) 55%,
+    color-mix(in oklab, var(--surface-2) 95%, transparent) 100%);
+  --gradient-primary: linear-gradient(135deg,
+    color-mix(in oklab, var(--primary) 95%, white 5%),
+    color-mix(in oklab, var(--primary) 70%, oklch(0.7 0.18 295) 30%));
 }
 
 :root {
@@ -125,13 +137,57 @@
 @layer utilities {
   .panel {
     background: var(--gradient-card);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-xl);
-    backdrop-filter: blur(8px);
+    border: 1px solid color-mix(in oklab, var(--color-border) 80%, transparent);
+    border-radius: var(--radius-2xl);
+    backdrop-filter: blur(14px) saturate(140%);
+    -webkit-backdrop-filter: blur(14px) saturate(140%);
+    box-shadow: var(--shadow-elevated);
+    position: relative;
+  }
+  .panel::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(180deg,
+      color-mix(in oklab, white 10%, transparent),
+      transparent 40%);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+  .panel-hero {
+    background: var(--gradient-hero);
+    overflow: hidden;
   }
   .chip {
-    background: color-mix(in oklab, var(--surface-2) 80%, transparent);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
+    background: color-mix(in oklab, var(--surface-2) 65%, transparent);
+    border: 1px solid color-mix(in oklab, var(--color-border) 75%, transparent);
+    border-radius: var(--radius-lg);
+    transition: background-color 200ms ease, border-color 200ms ease, transform 200ms ease;
+  }
+  .chip-hover:hover {
+    background: color-mix(in oklab, var(--accent) 60%, transparent);
+    border-color: color-mix(in oklab, var(--primary) 35%, var(--color-border));
+  }
+  .icon-tile {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 0.75rem;
+    background: color-mix(in oklab, var(--primary) 18%, transparent);
+    color: var(--primary);
+    border: 1px solid color-mix(in oklab, var(--primary) 30%, transparent);
+  }
+  .text-gradient {
+    background: linear-gradient(180deg, var(--foreground), color-mix(in oklab, var(--foreground) 60%, var(--primary) 40%));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
   }
 }
