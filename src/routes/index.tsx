@@ -366,8 +366,9 @@ function WeatherPage() {
       {/* MinuteCast — minute by minute, synchronized with radar nowcast */}
       <section className="panel p-6">
         <h2 className="text-lg font-semibold mb-1 flex items-center gap-2">
-          <span>🌧️</span> MinuteCast
-          <span className="chip px-2 py-0.5 text-[10px] text-primary border-primary/30">
+          <span className="icon-tile"><CloudRain className="size-4" /></span>
+          MinuteCast
+          <span className="chip px-2 py-0.5 text-[10px] text-primary border-primary/40">
             Minute-by-minute · 60 min
           </span>
           {radarRain.hasRain && (
