@@ -38,7 +38,54 @@ export default function CitySearch({ currentCity }: { currentCity: GeoResult }) 
   const [recent, setRecent] = useState<GeoResult[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [locating, setLocating] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+
+  function useMyLocation() {
+    if (typeof navigator === "undefined" || !navigator.geolocation) return;
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude, longitude } = pos.coords;
+        // Reverse geocode via Open-Meteo geocoding (search by coords using nearest)
+        try {
+          const url = `https://geocoding-api.open-meteo.com/v1/reverse?latitude=${latitude}&longitude=${longitude}&count=1&language=en&format=json`;
+          const res = await fetch(url);
+          const j = res.ok ? await res.json() : null;
+          const r = j?.results?.[0];
+          const city: GeoResult = r
+            ? {
+                id: r.id,
+                name: r.name,
+                country: r.country ?? "",
+                country_code: r.country_code ?? "",
+                admin1: r.admin1,
+                latitude: r.latitude,
+                longitude: r.longitude,
+                timezone: r.timezone ?? "auto",
+              }
+            : {
+                id: Math.floor(Math.random() * 1e9),
+                name: "My Location",
+                country: "",
+                country_code: "",
+                latitude,
+                longitude,
+                timezone: "auto",
+              };
+          setCity(city);
+          pushRecent(city);
+          setRecent(loadRecent());
+          setOpen(false);
+        } finally {
+          setLocating(false);
+        }
+      },
+      () => setLocating(false),
+      { enableHighAccuracy: true, timeout: 10_000 },
+    );
+  }
+
 
   useEffect(() => {
     setRecent(loadRecent());
