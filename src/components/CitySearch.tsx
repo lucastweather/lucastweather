@@ -230,6 +230,19 @@ export default function CitySearch({ currentCity }: { currentCity: GeoResult }) 
           </div>
         )}
       </div>
+      <button
+        onClick={useMyLocation}
+        disabled={locating}
+        title="Use my location"
+        className="chip px-3 py-2 text-xs flex items-center gap-1.5 shrink-0 chip-hover disabled:opacity-60"
+      >
+        {locating ? (
+          <Loader2 className="size-3.5 animate-spin text-primary" />
+        ) : (
+          <LocateFixed className="size-3.5 text-primary" />
+        )}
+        <span className="hidden sm:inline">My location</span>
+      </button>
       <div className="chip px-3 py-2 text-xs text-muted-foreground hidden md:flex items-center gap-1.5 shrink-0">
         <MapPin className="size-3.5 text-primary" />
         <span className="font-mono">
