@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Search, MapPin, Clock } from "lucide-react";
+import { Search, MapPin, Clock, LocateFixed, Loader2 } from "lucide-react";
 import { geocode, type GeoResult } from "@/lib/weather";
 import { setCity } from "@/lib/city-store";
 
