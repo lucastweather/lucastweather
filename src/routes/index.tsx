@@ -46,6 +46,8 @@ import HourlyForecast from "@/components/HourlyForecast";
 import HourlyGraph from "@/components/HourlyGraph";
 import HurricaneTracker from "@/components/HurricaneTracker";
 import WeatherNews from "@/components/WeatherNews";
+import AirQualityPanel from "@/components/AirQualityPanel";
+import SunMoonPanel from "@/components/SunMoonPanel";
 
 export const Route = createFileRoute("/")({
   head: () => ({
