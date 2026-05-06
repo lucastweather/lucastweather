@@ -99,7 +99,7 @@ function NewsStoryPage() {
           </div>
         )}
         <div className="prose prose-invert mt-6 space-y-4 text-foreground/90 max-w-none">
-          {story.body.map((p, i) => (
+          {story.body.map((p: string, i: number) => (
             <p key={i} className="leading-relaxed">
               {p}
             </p>
