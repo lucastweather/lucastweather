@@ -265,6 +265,12 @@ function WeatherPage() {
         </div>
       </section>
 
+      {/* Sun & Moon */}
+      <SunMoonPanel sunrise={data?.daily?.[0]?.sunrise} sunset={data?.daily?.[0]?.sunset} />
+
+      {/* Air quality + pollen */}
+      <AirQualityPanel lat={city.latitude} lon={city.longitude} />
+
       {/* Favorite Cities (premium) */}
       <FavoriteCities />
 
