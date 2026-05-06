@@ -46,6 +46,8 @@ import HourlyForecast from "@/components/HourlyForecast";
 import HourlyGraph from "@/components/HourlyGraph";
 import HurricaneTracker from "@/components/HurricaneTracker";
 import WeatherNews from "@/components/WeatherNews";
+import AirQualityPanel from "@/components/AirQualityPanel";
+import SunMoonPanel from "@/components/SunMoonPanel";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -262,6 +264,12 @@ function WeatherPage() {
           />
         </div>
       </section>
+
+      {/* Sun & Moon */}
+      <SunMoonPanel sunrise={data?.daily?.[0]?.sunrise} sunset={data?.daily?.[0]?.sunset} />
+
+      {/* Air quality + pollen */}
+      <AirQualityPanel lat={city.latitude} lon={city.longitude} />
 
       {/* Favorite Cities (premium) */}
       <FavoriteCities />
