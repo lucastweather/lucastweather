@@ -45,9 +45,9 @@
   --shadow-elevated: 0 1px 0 0 color-mix(in oklab, white 6%, transparent) inset,
     0 20px 60px -28px color-mix(in oklab, black 70%, transparent),
     0 8px 24px -16px color-mix(in oklab, var(--primary) 25%, transparent);
-  --gradient-sky: radial-gradient(1200px 700px at 12% -10%, oklch(0.28 0.08 245 / 0.55), transparent 60%),
-    radial-gradient(900px 600px at 100% 10%, oklch(0.26 0.1 295 / 0.35), transparent 55%),
-    linear-gradient(165deg, oklch(0.18 0.035 255), oklch(0.12 0.025 260) 60%, oklch(0.1 0.02 262));
+  --gradient-sky: radial-gradient(1200px 700px at 12% -10%, oklch(0.32 0.18 282 / 0.6), transparent 60%),
+    radial-gradient(900px 600px at 100% 10%, oklch(0.3 0.2 295 / 0.45), transparent 55%),
+    linear-gradient(160deg, oklch(0.18 0.09 270), oklch(0.16 0.12 285) 55%, oklch(0.14 0.14 295));
   --gradient-card: linear-gradient(180deg, color-mix(in oklab, var(--surface) 78%, transparent),
     color-mix(in oklab, var(--surface-2) 70%, transparent));
   --gradient-hero: linear-gradient(140deg,
