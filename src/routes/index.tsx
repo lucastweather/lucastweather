@@ -104,6 +104,11 @@ function WeatherPage() {
     let cancelled = false;
     setLoading(true);
     setErr(null);
+    // Reset radar/satellite-derived overrides so we don't apply stale
+    // observations from the previously-selected city to the new city's data.
+    setRadarRain({ intensity: 0, hasRain: false, checked: false });
+    setSatClouds(null);
+    setData(null);
     fetchWeather(city.latitude, city.longitude, subscribed ? 16 : 7)
       .then((d) => {
         if (!cancelled) setData(d);
