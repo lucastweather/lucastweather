@@ -1,0 +1,12 @@
+# Lucast Weather
+
+> Hyper-accurate weather forecasts with live radar, satellite, minute-by-minute precipitation, hourly and daily outlooks, air quality, pollen, sun & moon data, hurricane tracking, earthquake maps, and curated weather news.
+
+## Pages
+
+- [Home](/): Current conditions, hourly and daily forecast, radar, air quality, sun & moon, and more for any city.
+- [Radar](/radar): Full-screen interactive weather radar and satellite map.
+- [Alerts](/alerts): Active severe weather alerts for your location.
+- [News](/news): Latest weather news stories and major event coverage.
+- [Premium](/premium): Upgrade to Lucast Premium for 16-day forecasts and extended features.
+- [API](/api): Developer API for accessing Lucast weather data.
