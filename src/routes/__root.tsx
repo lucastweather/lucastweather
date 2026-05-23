@@ -29,6 +29,7 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { name: "google-site-verification", content: "hpM9nCuoHGKEM-r0jiWTbnp6PekvpDo5_mzvU2EVlwo" },
       { title: "Lucast Weather" },
       { name: "description", content: "Get hyper-accurate weather forecasts, live camera feeds, and radar maps." },
       { name: "author", content: "Lovable" },
