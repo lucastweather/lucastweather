@@ -59,6 +59,7 @@ export const Route = createFileRoute("/")({
           "AI-powered hyper-accurate weather, free hourly forecast, MinuteCast, live radar with 4-hour outlook, nearby weather cameras, and earthquake tracker.",
       },
     ],
+    links: [{ rel: "canonical", href: "https://lucastweather.lovable.app/" }],
   }),
   component: WeatherPage,
 });

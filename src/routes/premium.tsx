@@ -14,6 +14,7 @@ export const Route = createFileRoute("/premium")({
       { title: "Premium — Lucast Weather" },
       { name: "description", content: "Unlock animated radar nowcast, 16-day forecast, and ad-free experience." },
     ],
+    links: [{ rel: "canonical", href: "https://lucastweather.lovable.app/premium" }],
   }),
   component: PremiumPage,
 });

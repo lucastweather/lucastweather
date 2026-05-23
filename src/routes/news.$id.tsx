@@ -14,7 +14,7 @@ export const Route = createFileRoute("/news/$id")({
     const story = await fetchNewsStoryFn({ data: { id: params.id } });
     return { story };
   },
-  head: ({ loaderData }) => {
+  head: ({ loaderData, params }) => {
     const story = loaderData?.story;
     return {
       meta: story
@@ -25,6 +25,7 @@ export const Route = createFileRoute("/news/$id")({
             { property: "og:description", content: story.dek },
           ]
         : [{ title: "Story not found — Lucast Weather News" }],
+      links: [{ rel: "canonical", href: `https://lucastweather.lovable.app/news/${params.id}` }],
     };
   },
   errorComponent: ({ error, reset }) => {

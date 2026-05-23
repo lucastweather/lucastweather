@@ -26,6 +26,7 @@ export const Route = createFileRoute("/api")({
           "Developer API for hyperlocal weather. Generate a key, get 20 free calls/month, upgrade for higher limits.",
       },
     ],
+    links: [{ rel: "canonical", href: "https://lucastweather.lovable.app/api" }],
   }),
   component: ApiPage,
 });

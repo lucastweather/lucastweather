@@ -10,6 +10,7 @@ export const Route = createFileRoute("/alerts")({
       { title: "Severe Weather Alerts — Lucast Weather" },
       { name: "description", content: "Active severe weather alerts and government advisories for your location." },
     ],
+    links: [{ rel: "canonical", href: "https://lucastweather.lovable.app/alerts" }],
   }),
   component: AlertsPage,
 });

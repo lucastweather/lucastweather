@@ -14,6 +14,7 @@ export const Route = createFileRoute("/admin")({
       { title: "Sign in — Lucast Weather" },
       { name: "description", content: "Sign in or create an account to manage your Lucast subscription." },
     ],
+    links: [{ rel: "canonical", href: "https://lucastweather.lovable.app/admin" }],
   }),
   component: AuthPage,
 });

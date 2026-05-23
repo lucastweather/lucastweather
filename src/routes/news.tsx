@@ -12,13 +12,14 @@ export const fetchNewsList = createServerFn({ method: "GET" }).handler(
 export const Route = createFileRoute("/news")({
   head: () => ({
     meta: [
-      { title: "Lucast Weather News — Hurricanes, Severe Storms & Live Alerts" },
+      { title: "Weather News — Lucast" },
       {
         name: "description",
         content:
           "The latest weather news from Lucast: hurricane landfalls, severe storm outlooks, winter storms, flooding, and live alerts sourced from NWS, SPC, and NHC.",
       },
     ],
+    links: [{ rel: "canonical", href: "https://lucastweather.lovable.app/news" }],
   }),
   component: NewsIndexPage,
 });
