@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as RadarRouteImport } from './routes/radar'
 import { Route as PremiumRouteImport } from './routes/premium'
 import { Route as NewsRouteImport } from './routes/news'
@@ -24,6 +25,11 @@ import { Route as ApiBillingPortalRouteImport } from './routes/api.billing-porta
 import { Route as ApiKeysRevokeRouteImport } from './routes/api.keys.revoke'
 import { Route as ApiPublicV1CurrentRouteImport } from './routes/api.public.v1.current'
 
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RadarRoute = RadarRouteImport.update({
   id: '/radar',
   path: '/radar',
@@ -103,6 +109,7 @@ export interface FileRoutesByFullPath {
   '/news': typeof NewsRouteWithChildren
   '/premium': typeof PremiumRoute
   '/radar': typeof RadarRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/api/billing-portal': typeof ApiBillingPortalRoute
   '/api/checkout': typeof ApiCheckoutRoute
   '/api/keys': typeof ApiKeysRouteWithChildren
@@ -119,6 +126,7 @@ export interface FileRoutesByTo {
   '/news': typeof NewsRouteWithChildren
   '/premium': typeof PremiumRoute
   '/radar': typeof RadarRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/api/billing-portal': typeof ApiBillingPortalRoute
   '/api/checkout': typeof ApiCheckoutRoute
   '/api/keys': typeof ApiKeysRouteWithChildren
@@ -136,6 +144,7 @@ export interface FileRoutesById {
   '/news': typeof NewsRouteWithChildren
   '/premium': typeof PremiumRoute
   '/radar': typeof RadarRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/api/billing-portal': typeof ApiBillingPortalRoute
   '/api/checkout': typeof ApiCheckoutRoute
   '/api/keys': typeof ApiKeysRouteWithChildren
@@ -154,6 +163,7 @@ export interface FileRouteTypes {
     | '/news'
     | '/premium'
     | '/radar'
+    | '/sitemap.xml'
     | '/api/billing-portal'
     | '/api/checkout'
     | '/api/keys'
@@ -170,6 +180,7 @@ export interface FileRouteTypes {
     | '/news'
     | '/premium'
     | '/radar'
+    | '/sitemap.xml'
     | '/api/billing-portal'
     | '/api/checkout'
     | '/api/keys'
@@ -186,6 +197,7 @@ export interface FileRouteTypes {
     | '/news'
     | '/premium'
     | '/radar'
+    | '/sitemap.xml'
     | '/api/billing-portal'
     | '/api/checkout'
     | '/api/keys'
@@ -203,10 +215,18 @@ export interface RootRouteChildren {
   NewsRoute: typeof NewsRouteWithChildren
   PremiumRoute: typeof PremiumRoute
   RadarRoute: typeof RadarRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/radar': {
       id: '/radar'
       path: '/radar'
@@ -355,7 +375,17 @@ const rootRouteChildren: RootRouteChildren = {
   NewsRoute: NewsRouteWithChildren,
   PremiumRoute: PremiumRoute,
   RadarRoute: RadarRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
