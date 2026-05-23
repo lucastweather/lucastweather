@@ -17,6 +17,7 @@ export const Route = createFileRoute("/radar")({
           "Live AI-blended radar with past + 30-min nowcast forecast, lightning, satellite, and precipitation maps powered by RainViewer.",
       },
     ],
+    links: [{ rel: "canonical", href: "https://lucastweather.lovable.app/radar" }],
   }),
   component: RadarPage,
 });
