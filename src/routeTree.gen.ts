@@ -13,7 +13,6 @@ import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as RadarRouteImport } from './routes/radar'
 import { Route as PremiumRouteImport } from './routes/premium'
 import { Route as NewsRouteImport } from './routes/news'
-import { Route as McpRouteImport } from './routes/mcp'
 import { Route as ApiRouteImport } from './routes/api'
 import { Route as AlertsRouteImport } from './routes/alerts'
 import { Route as AdminRouteImport } from './routes/admin'
@@ -23,10 +22,7 @@ import { Route as ApiSubscriptionCheckRouteImport } from './routes/api.subscript
 import { Route as ApiKeysRouteImport } from './routes/api.keys'
 import { Route as ApiCheckoutRouteImport } from './routes/api.checkout'
 import { Route as ApiBillingPortalRouteImport } from './routes/api.billing-portal'
-import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
-import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
 import { Route as ApiKeysRevokeRouteImport } from './routes/api.keys.revoke'
-import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
 import { Route as ApiPublicV1CurrentRouteImport } from './routes/api.public.v1.current'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
@@ -47,11 +43,6 @@ const PremiumRoute = PremiumRouteImport.update({
 const NewsRoute = NewsRouteImport.update({
   id: '/news',
   path: '/news',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const McpRoute = McpRouteImport.update({
-  id: '/mcp',
-  path: '/mcp',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiRoute = ApiRouteImport.update({
@@ -99,29 +90,11 @@ const ApiBillingPortalRoute = ApiBillingPortalRouteImport.update({
   path: '/billing-portal',
   getParentRoute: () => ApiRoute,
 } as any)
-const Char91DotwellKnownChar93OauthProtectedResourceRoute =
-  Char91DotwellKnownChar93OauthProtectedResourceRouteImport.update({
-    id: '/.well-known/oauth-protected-resource',
-    path: '/.well-known/oauth-protected-resource',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const Char91DotmcpChar93ListToolsRoute =
-  Char91DotmcpChar93ListToolsRouteImport.update({
-    id: '/.mcp/list-tools',
-    path: '/.mcp/list-tools',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const ApiKeysRevokeRoute = ApiKeysRevokeRouteImport.update({
   id: '/revoke',
   path: '/revoke',
   getParentRoute: () => ApiKeysRoute,
 } as any)
-const Char91DotmcpChar93InvokeToolToolRoute =
-  Char91DotmcpChar93InvokeToolToolRouteImport.update({
-    id: '/.mcp/invoke-tool/$tool',
-    path: '/.mcp/invoke-tool/$tool',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const ApiPublicV1CurrentRoute = ApiPublicV1CurrentRouteImport.update({
   id: '/public/v1/current',
   path: '/public/v1/current',
@@ -133,19 +106,15 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRoute
   '/alerts': typeof AlertsRoute
   '/api': typeof ApiRouteWithChildren
-  '/mcp': typeof McpRoute
   '/news': typeof NewsRouteWithChildren
   '/premium': typeof PremiumRoute
   '/radar': typeof RadarRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
-  '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
-  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/api/billing-portal': typeof ApiBillingPortalRoute
   '/api/checkout': typeof ApiCheckoutRoute
   '/api/keys': typeof ApiKeysRouteWithChildren
   '/api/subscription-check': typeof ApiSubscriptionCheckRoute
   '/news/$id': typeof NewsIdRoute
-  '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/keys/revoke': typeof ApiKeysRevokeRoute
   '/api/public/v1/current': typeof ApiPublicV1CurrentRoute
 }
@@ -154,19 +123,15 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminRoute
   '/alerts': typeof AlertsRoute
   '/api': typeof ApiRouteWithChildren
-  '/mcp': typeof McpRoute
   '/news': typeof NewsRouteWithChildren
   '/premium': typeof PremiumRoute
   '/radar': typeof RadarRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
-  '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
-  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/api/billing-portal': typeof ApiBillingPortalRoute
   '/api/checkout': typeof ApiCheckoutRoute
   '/api/keys': typeof ApiKeysRouteWithChildren
   '/api/subscription-check': typeof ApiSubscriptionCheckRoute
   '/news/$id': typeof NewsIdRoute
-  '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/keys/revoke': typeof ApiKeysRevokeRoute
   '/api/public/v1/current': typeof ApiPublicV1CurrentRoute
 }
@@ -176,19 +141,15 @@ export interface FileRoutesById {
   '/admin': typeof AdminRoute
   '/alerts': typeof AlertsRoute
   '/api': typeof ApiRouteWithChildren
-  '/mcp': typeof McpRoute
   '/news': typeof NewsRouteWithChildren
   '/premium': typeof PremiumRoute
   '/radar': typeof RadarRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
-  '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
-  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/api/billing-portal': typeof ApiBillingPortalRoute
   '/api/checkout': typeof ApiCheckoutRoute
   '/api/keys': typeof ApiKeysRouteWithChildren
   '/api/subscription-check': typeof ApiSubscriptionCheckRoute
   '/news/$id': typeof NewsIdRoute
-  '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/keys/revoke': typeof ApiKeysRevokeRoute
   '/api/public/v1/current': typeof ApiPublicV1CurrentRoute
 }
@@ -199,19 +160,15 @@ export interface FileRouteTypes {
     | '/admin'
     | '/alerts'
     | '/api'
-    | '/mcp'
     | '/news'
     | '/premium'
     | '/radar'
     | '/sitemap.xml'
-    | '/.mcp/list-tools'
-    | '/.well-known/oauth-protected-resource'
     | '/api/billing-portal'
     | '/api/checkout'
     | '/api/keys'
     | '/api/subscription-check'
     | '/news/$id'
-    | '/.mcp/invoke-tool/$tool'
     | '/api/keys/revoke'
     | '/api/public/v1/current'
   fileRoutesByTo: FileRoutesByTo
@@ -220,19 +177,15 @@ export interface FileRouteTypes {
     | '/admin'
     | '/alerts'
     | '/api'
-    | '/mcp'
     | '/news'
     | '/premium'
     | '/radar'
     | '/sitemap.xml'
-    | '/.mcp/list-tools'
-    | '/.well-known/oauth-protected-resource'
     | '/api/billing-portal'
     | '/api/checkout'
     | '/api/keys'
     | '/api/subscription-check'
     | '/news/$id'
-    | '/.mcp/invoke-tool/$tool'
     | '/api/keys/revoke'
     | '/api/public/v1/current'
   id:
@@ -241,19 +194,15 @@ export interface FileRouteTypes {
     | '/admin'
     | '/alerts'
     | '/api'
-    | '/mcp'
     | '/news'
     | '/premium'
     | '/radar'
     | '/sitemap.xml'
-    | '/.mcp/list-tools'
-    | '/.well-known/oauth-protected-resource'
     | '/api/billing-portal'
     | '/api/checkout'
     | '/api/keys'
     | '/api/subscription-check'
     | '/news/$id'
-    | '/.mcp/invoke-tool/$tool'
     | '/api/keys/revoke'
     | '/api/public/v1/current'
   fileRoutesById: FileRoutesById
@@ -263,14 +212,10 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRoute
   AlertsRoute: typeof AlertsRoute
   ApiRoute: typeof ApiRouteWithChildren
-  McpRoute: typeof McpRoute
   NewsRoute: typeof NewsRouteWithChildren
   PremiumRoute: typeof PremiumRoute
   RadarRoute: typeof RadarRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
-  Char91DotmcpChar93ListToolsRoute: typeof Char91DotmcpChar93ListToolsRoute
-  Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
-  Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -301,13 +246,6 @@ declare module '@tanstack/react-router' {
       path: '/news'
       fullPath: '/news'
       preLoaderRoute: typeof NewsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/mcp': {
-      id: '/mcp'
-      path: '/mcp'
-      fullPath: '/mcp'
-      preLoaderRoute: typeof McpRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api': {
@@ -373,33 +311,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiBillingPortalRouteImport
       parentRoute: typeof ApiRoute
     }
-    '/.well-known/oauth-protected-resource': {
-      id: '/.well-known/oauth-protected-resource'
-      path: '/.well-known/oauth-protected-resource'
-      fullPath: '/.well-known/oauth-protected-resource'
-      preLoaderRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/.mcp/list-tools': {
-      id: '/.mcp/list-tools'
-      path: '/.mcp/list-tools'
-      fullPath: '/.mcp/list-tools'
-      preLoaderRoute: typeof Char91DotmcpChar93ListToolsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/keys/revoke': {
       id: '/api/keys/revoke'
       path: '/revoke'
       fullPath: '/api/keys/revoke'
       preLoaderRoute: typeof ApiKeysRevokeRouteImport
       parentRoute: typeof ApiKeysRoute
-    }
-    '/.mcp/invoke-tool/$tool': {
-      id: '/.mcp/invoke-tool/$tool'
-      path: '/.mcp/invoke-tool/$tool'
-      fullPath: '/.mcp/invoke-tool/$tool'
-      preLoaderRoute: typeof Char91DotmcpChar93InvokeToolToolRouteImport
-      parentRoute: typeof rootRouteImport
     }
     '/api/public/v1/current': {
       id: '/api/public/v1/current'
@@ -455,25 +372,11 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRoute,
   AlertsRoute: AlertsRoute,
   ApiRoute: ApiRouteWithChildren,
-  McpRoute: McpRoute,
   NewsRoute: NewsRouteWithChildren,
   PremiumRoute: PremiumRoute,
   RadarRoute: RadarRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
-  Char91DotmcpChar93ListToolsRoute: Char91DotmcpChar93ListToolsRoute,
-  Char91DotwellKnownChar93OauthProtectedResourceRoute:
-    Char91DotwellKnownChar93OauthProtectedResourceRoute,
-  Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}
