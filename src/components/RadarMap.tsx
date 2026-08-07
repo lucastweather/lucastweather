@@ -195,40 +195,66 @@ export default function RadarMap({
   // Fetch radar + satellite frame index. Probe both rain (radar nowcast) and
   // clouds (satellite IR) at the user's location every refresh.
   useEffect(() => {
-    fetch(RAINVIEWER_API)
-      .then((r) => r.json() as Promise<ApiResp>)
-      .then((d) => {
-        const past = d.radar.past ?? [];
-        const nowcast = d.radar.nowcast ?? [];
-        const all = showForecast ? [...past, ...nowcast] : past;
-        setHost(d.host);
-        setRadarFrames(all);
-        setPastCount(past.length);
+    let cancelled = false;
+    const load = () => {
+      fetch(RAINVIEWER_API)
+        .then((r) => r.json() as Promise<ApiResp>)
+        .then(async (d) => {
+          if (cancelled) return;
+          const past = d.radar.past ?? [];
+          const nowcast = d.radar.nowcast ?? [];
+          const all = showForecast ? [...past, ...nowcast] : past;
+          setHost(d.host);
+          setRadarFrames(all);
+          setPastCount(past.length);
 
-        // Current-condition sync must use the latest observed radar frame, not
-        // a future nowcast frame, otherwise MinuteCast/current/hourly can show
-        // rain before it is actually over the user's area.
-        const currentRadarFrame = past[past.length - 1] ?? nowcast[0];
-        if (currentRadarFrame && onNowcast) {
-          probeTile(d.host, currentRadarFrame.path, lat, lon, "radar")
-            .then((alpha) => onNowcast(alpha, alpha >= 0.035))
-            .catch(() => onNowcast(0, false));
-        } else if (onNowcast) {
-          onNowcast(0, false);
-        }
+          // Current-condition sync must use the latest observed radar frames,
+          // not a future nowcast frame. We require the two most recent
+          // observed frames to agree before declaring rain overhead, so a
+          // single noisy tile can't lock the app into "raining" forever.
+          const recent = past.slice(-2);
+          if (recent.length === 0) recent.push(nowcast[0]!);
+          if (onNowcast) {
+            try {
+              const alphas = await Promise.all(
+                recent
+                  .filter(Boolean)
+                  .map((f) => probeTile(d.host, f.path, lat, lon, "radar")),
+              );
+              if (cancelled) return;
+              const latest = alphas[alphas.length - 1] ?? 0;
+              const wetFrames = alphas.filter((a) => a >= 0.06).length;
+              const hasRain = latest >= 0.06 && wetFrames === alphas.length;
+              onNowcast(hasRain ? latest : 0, hasRain);
+            } catch {
+              if (!cancelled) onNowcast(0, false);
+            }
+          }
 
-        const sat = d.satellite.infrared ?? [];
-        if (sat.length > 0 && onSatelliteClouds) {
-          probeTile(d.host, sat[sat.length - 1].path, lat, lon, "satellite")
-            .then((alpha) => onSatelliteClouds(Math.round(alpha * 100)))
-            .catch(() => {});
-        }
-      })
-      .catch(() => {
-        setRadarFrames([]);
-        onNowcast?.(0, false);
-      });
+          const sat = d.satellite.infrared ?? [];
+          if (sat.length > 0 && onSatelliteClouds) {
+            probeTile(d.host, sat[sat.length - 1].path, lat, lon, "satellite")
+              .then((alpha) => {
+                if (!cancelled) onSatelliteClouds(Math.round(alpha * 100));
+              })
+              .catch(() => {});
+          }
+        })
+        .catch(() => {
+          if (cancelled) return;
+          setRadarFrames([]);
+          onNowcast?.(0, false);
+        });
+    };
+    load();
+    // Re-probe every 5 minutes so a past rain reading never stays stuck.
+    const id = window.setInterval(load, 5 * 60 * 1000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
   }, [showForecast, lat, lon, onNowcast, onSatelliteClouds]);
+
 
   // Reset frame index when frame source swaps.
   useEffect(() => {
