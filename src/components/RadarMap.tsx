@@ -195,40 +195,66 @@ export default function RadarMap({
   // Fetch radar + satellite frame index. Probe both rain (radar nowcast) and
   // clouds (satellite IR) at the user's location every refresh.
   useEffect(() => {
-    fetch(RAINVIEWER_API)
-      .then((r) => r.json() as Promise<ApiResp>)
-      .then((d) => {
-        const past = d.radar.past ?? [];
-        const nowcast = d.radar.nowcast ?? [];
-        const all = showForecast ? [...past, ...nowcast] : past;
-        setHost(d.host);
-        setRadarFrames(all);
-        setPastCount(past.length);
+    let cancelled = false;
+    const load = () => {
+      fetch(RAINVIEWER_API)
+        .then((r) => r.json() as Promise<ApiResp>)
+        .then(async (d) => {
+          if (cancelled) return;
+          const past = d.radar.past ?? [];
+          const nowcast = d.radar.nowcast ?? [];
+          const all = showForecast ? [...past, ...nowcast] : past;
+          setHost(d.host);
+          setRadarFrames(all);
+          setPastCount(past.length);
 
-        // Current-condition sync must use the latest observed radar frame, not
-        // a future nowcast frame, otherwise MinuteCast/current/hourly can show
-        // rain before it is actually over the user's area.
-        const currentRadarFrame = past[past.length - 1] ?? nowcast[0];
-        if (currentRadarFrame && onNowcast) {
-          probeTile(d.host, currentRadarFrame.path, lat, lon, "radar")
-            .then((alpha) => onNowcast(alpha, alpha >= 0.035))
-            .catch(() => onNowcast(0, false));
-        } else if (onNowcast) {
-          onNowcast(0, false);
-        }
+          // Current-condition sync must use the latest observed radar frames,
+          // not a future nowcast frame. We require the two most recent
+          // observed frames to agree before declaring rain overhead, so a
+          // single noisy tile can't lock the app into "raining" forever.
+          const recent = past.slice(-2);
+          if (recent.length === 0) recent.push(nowcast[0]!);
+          if (onNowcast) {
+            try {
+              const alphas = await Promise.all(
+                recent
+                  .filter(Boolean)
+                  .map((f) => probeTile(d.host, f.path, lat, lon, "radar")),
+              );
+              if (cancelled) return;
+              const latest = alphas[alphas.length - 1] ?? 0;
+              const wetFrames = alphas.filter((a) => a >= 0.06).length;
+              const hasRain = latest >= 0.06 && wetFrames === alphas.length;
+              onNowcast(hasRain ? latest : 0, hasRain);
+            } catch {
+              if (!cancelled) onNowcast(0, false);
+            }
+          }
 
-        const sat = d.satellite.infrared ?? [];
-        if (sat.length > 0 && onSatelliteClouds) {
-          probeTile(d.host, sat[sat.length - 1].path, lat, lon, "satellite")
-            .then((alpha) => onSatelliteClouds(Math.round(alpha * 100)))
-            .catch(() => {});
-        }
-      })
-      .catch(() => {
-        setRadarFrames([]);
-        onNowcast?.(0, false);
-      });
+          const sat = d.satellite.infrared ?? [];
+          if (sat.length > 0 && onSatelliteClouds) {
+            probeTile(d.host, sat[sat.length - 1].path, lat, lon, "satellite")
+              .then((alpha) => {
+                if (!cancelled) onSatelliteClouds(Math.round(alpha * 100));
+              })
+              .catch(() => {});
+          }
+        })
+        .catch(() => {
+          if (cancelled) return;
+          setRadarFrames([]);
+          onNowcast?.(0, false);
+        });
+    };
+    load();
+    // Re-probe every 5 minutes so a past rain reading never stays stuck.
+    const id = window.setInterval(load, 5 * 60 * 1000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
   }, [showForecast, lat, lon, onNowcast, onSatelliteClouds]);
+
 
   // Reset frame index when frame source swaps.
   useEffect(() => {
@@ -427,14 +453,21 @@ async function probeTile(
   kind: "radar" | "satellite",
 ): Promise<number> {
   const z = 6;
-  const tileX = Math.floor(((lon + 180) / 360) * 2 ** z);
-  const tileY = Math.floor(
-    ((1 -
-      Math.log(Math.tan((lat * Math.PI) / 180) + 1 / Math.cos((lat * Math.PI) / 180)) /
-        Math.PI) /
-      2) *
-      2 ** z,
-  );
+  const n = 2 ** z;
+  const xF = ((lon + 180) / 360) * n;
+  const latRad = (lat * Math.PI) / 180;
+  const yF =
+    ((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2) * n;
+  const tileX = Math.floor(xF);
+  const tileY = Math.floor(yF);
+  // Exact pixel of the user's location inside this 256px tile. Sampling a
+  // fixed spot (previously 120,120) read precipitation hundreds of km away,
+  // which made the app claim rain when the radar was clear overhead.
+  const px = Math.min(255, Math.max(0, Math.floor((xF - tileX) * 256)));
+  const py = Math.min(255, Math.max(0, Math.floor((yF - tileY) * 256)));
+  const box = kind === "satellite" ? 12 : 6;
+  const sx = Math.min(256 - box, Math.max(0, px - Math.floor(box / 2)));
+  const sy = Math.min(256 - box, Math.max(0, py - Math.floor(box / 2)));
   const color = kind === "satellite" ? 0 : 2;
   const opts = kind === "satellite" ? "0_0" : "1_1";
   const url = `${host}${path}/256/${z}/${tileX}/${tileY}/${color}/${opts}.png`;
@@ -449,7 +482,7 @@ async function probeTile(
         const ctx = canvas.getContext("2d");
         if (!ctx) return resolve(0);
         ctx.drawImage(img, 0, 0);
-        const data = ctx.getImageData(120, 120, 16, 16).data;
+        const data = ctx.getImageData(sx, sy, box, box).data;
         let score = 0;
         let samples = 0;
         for (let i = 0; i < data.length; i += 4) {
@@ -458,7 +491,7 @@ async function probeTile(
             // For IR satellite (B&W), brighter pixel = more cloud
             const lum = (data[i] + data[i + 1] + data[i + 2]) / 3;
             score += lum / 255;
-          } else if (data[i + 3] > 30) {
+          } else if (data[i + 3] > 60) {
             score += 1;
           }
         }
@@ -466,6 +499,7 @@ async function probeTile(
       } catch {
         resolve(0);
       }
+
     };
     img.onerror = () => resolve(0);
     img.src = url;
