@@ -1,0 +1,189 @@
+{
+  "version": 1,
+  "sdk_version": "0.26.1",
+  "path": "/mcp",
+  "auth": {
+    "type": "none"
+  },
+  "mcp": {
+    "server": {
+      "name": "lucas-weather-clone",
+      "version": "0.1.0",
+      "title": "Lucas Weather Clone"
+    },
+    "tools": [
+      {
+        "name": "search_city",
+        "title": "Search city",
+        "description": "Find cities by name and return their coordinates, country, and admin region. Use the latitude/longitude with the weather tools.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": true
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "minLength": 1,
+              "description": "City name to search for, e.g. 'Seattle'."
+            }
+          },
+          "required": [
+            "query"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_current_weather",
+        "title": "Get current weather",
+        "description": "Current conditions (temperature, feels-like, humidity, wind, UV, cloud cover) for a latitude/longitude.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": true
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "latitude": {
+              "type": "number",
+              "description": "Latitude in decimal degrees."
+            },
+            "longitude": {
+              "type": "number",
+              "description": "Longitude in decimal degrees."
+            }
+          },
+          "required": [
+            "latitude",
+            "longitude"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_hourly_forecast",
+        "title": "Get hourly forecast",
+        "description": "Hour-by-hour forecast (temperature, precipitation chance, wind, gusts, cloud cover) for a latitude/longitude.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": true
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "latitude": {
+              "type": "number",
+              "description": "Latitude in decimal degrees."
+            },
+            "longitude": {
+              "type": "number",
+              "description": "Longitude in decimal degrees."
+            },
+            "hours": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991,
+              "description": "Number of hours to return, 1-168."
+            }
+          },
+          "required": [
+            "latitude",
+            "longitude"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_daily_forecast",
+        "title": "Get daily forecast",
+        "description": "Daily forecast (high/low, precipitation total and chance, sunrise/sunset) for up to 16 days at a latitude/longitude.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": true
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "latitude": {
+              "type": "number",
+              "description": "Latitude in decimal degrees."
+            },
+            "longitude": {
+              "type": "number",
+              "description": "Longitude in decimal degrees."
+            },
+            "days": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991,
+              "description": "Number of forecast days, 1-16."
+            }
+          },
+          "required": [
+            "latitude",
+            "longitude"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_active_hurricanes",
+        "title": "Get active tropical storms",
+        "description": "Active tropical cyclones from the National Hurricane Center, including intensity, pressure, movement, and advisory links.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": true
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {}
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_earthquakes",
+        "title": "Get recent earthquakes",
+        "description": "Recent significant earthquakes from the USGS seismic feed.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": true
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {}
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_weather_news",
+        "title": "Get weather news",
+        "description": "Latest Lucast Weather news stories with headlines, summaries, and links.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": true
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {}
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
