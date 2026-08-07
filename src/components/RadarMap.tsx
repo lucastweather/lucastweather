@@ -427,14 +427,21 @@ async function probeTile(
   kind: "radar" | "satellite",
 ): Promise<number> {
   const z = 6;
-  const tileX = Math.floor(((lon + 180) / 360) * 2 ** z);
-  const tileY = Math.floor(
-    ((1 -
-      Math.log(Math.tan((lat * Math.PI) / 180) + 1 / Math.cos((lat * Math.PI) / 180)) /
-        Math.PI) /
-      2) *
-      2 ** z,
-  );
+  const n = 2 ** z;
+  const xF = ((lon + 180) / 360) * n;
+  const latRad = (lat * Math.PI) / 180;
+  const yF =
+    ((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2) * n;
+  const tileX = Math.floor(xF);
+  const tileY = Math.floor(yF);
+  // Exact pixel of the user's location inside this 256px tile. Sampling a
+  // fixed spot (previously 120,120) read precipitation hundreds of km away,
+  // which made the app claim rain when the radar was clear overhead.
+  const px = Math.min(255, Math.max(0, Math.floor((xF - tileX) * 256)));
+  const py = Math.min(255, Math.max(0, Math.floor((yF - tileY) * 256)));
+  const box = kind === "satellite" ? 12 : 6;
+  const sx = Math.min(256 - box, Math.max(0, px - Math.floor(box / 2)));
+  const sy = Math.min(256 - box, Math.max(0, py - Math.floor(box / 2)));
   const color = kind === "satellite" ? 0 : 2;
   const opts = kind === "satellite" ? "0_0" : "1_1";
   const url = `${host}${path}/256/${z}/${tileX}/${tileY}/${color}/${opts}.png`;
@@ -449,7 +456,7 @@ async function probeTile(
         const ctx = canvas.getContext("2d");
         if (!ctx) return resolve(0);
         ctx.drawImage(img, 0, 0);
-        const data = ctx.getImageData(120, 120, 16, 16).data;
+        const data = ctx.getImageData(sx, sy, box, box).data;
         let score = 0;
         let samples = 0;
         for (let i = 0; i < data.length; i += 4) {
@@ -458,7 +465,7 @@ async function probeTile(
             // For IR satellite (B&W), brighter pixel = more cloud
             const lum = (data[i] + data[i + 1] + data[i + 2]) / 3;
             score += lum / 255;
-          } else if (data[i + 3] > 30) {
+          } else if (data[i + 3] > 60) {
             score += 1;
           }
         }
@@ -466,6 +473,7 @@ async function probeTile(
       } catch {
         resolve(0);
       }
+
     };
     img.onerror = () => resolve(0);
     img.src = url;
