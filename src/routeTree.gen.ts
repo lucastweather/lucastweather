@@ -23,7 +23,10 @@ import { Route as ApiKeysRouteImport } from './routes/api.keys'
 import { Route as ApiCheckoutRouteImport } from './routes/api.checkout'
 import { Route as ApiBillingPortalRouteImport } from './routes/api.billing-portal'
 import { Route as ApiKeysRevokeRouteImport } from './routes/api.keys.revoke'
+import { Route as ApiPublicV1MinutecastRouteImport } from './routes/api.public.v1.minutecast'
 import { Route as ApiPublicV1CurrentRouteImport } from './routes/api.public.v1.current'
+import { Route as ApiPublicV1AlertsRouteImport } from './routes/api.public.v1.alerts'
+import { Route as ApiPublicV1ForecastDailyRouteImport } from './routes/api.public.v1.forecast.daily'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
@@ -95,11 +98,27 @@ const ApiKeysRevokeRoute = ApiKeysRevokeRouteImport.update({
   path: '/revoke',
   getParentRoute: () => ApiKeysRoute,
 } as any)
+const ApiPublicV1MinutecastRoute = ApiPublicV1MinutecastRouteImport.update({
+  id: '/public/v1/minutecast',
+  path: '/public/v1/minutecast',
+  getParentRoute: () => ApiRoute,
+} as any)
 const ApiPublicV1CurrentRoute = ApiPublicV1CurrentRouteImport.update({
   id: '/public/v1/current',
   path: '/public/v1/current',
   getParentRoute: () => ApiRoute,
 } as any)
+const ApiPublicV1AlertsRoute = ApiPublicV1AlertsRouteImport.update({
+  id: '/public/v1/alerts',
+  path: '/public/v1/alerts',
+  getParentRoute: () => ApiRoute,
+} as any)
+const ApiPublicV1ForecastDailyRoute =
+  ApiPublicV1ForecastDailyRouteImport.update({
+    id: '/public/v1/forecast/daily',
+    path: '/public/v1/forecast/daily',
+    getParentRoute: () => ApiRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -116,7 +135,10 @@ export interface FileRoutesByFullPath {
   '/api/subscription-check': typeof ApiSubscriptionCheckRoute
   '/news/$id': typeof NewsIdRoute
   '/api/keys/revoke': typeof ApiKeysRevokeRoute
+  '/api/public/v1/alerts': typeof ApiPublicV1AlertsRoute
   '/api/public/v1/current': typeof ApiPublicV1CurrentRoute
+  '/api/public/v1/minutecast': typeof ApiPublicV1MinutecastRoute
+  '/api/public/v1/forecast/daily': typeof ApiPublicV1ForecastDailyRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -133,7 +155,10 @@ export interface FileRoutesByTo {
   '/api/subscription-check': typeof ApiSubscriptionCheckRoute
   '/news/$id': typeof NewsIdRoute
   '/api/keys/revoke': typeof ApiKeysRevokeRoute
+  '/api/public/v1/alerts': typeof ApiPublicV1AlertsRoute
   '/api/public/v1/current': typeof ApiPublicV1CurrentRoute
+  '/api/public/v1/minutecast': typeof ApiPublicV1MinutecastRoute
+  '/api/public/v1/forecast/daily': typeof ApiPublicV1ForecastDailyRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -151,7 +176,10 @@ export interface FileRoutesById {
   '/api/subscription-check': typeof ApiSubscriptionCheckRoute
   '/news/$id': typeof NewsIdRoute
   '/api/keys/revoke': typeof ApiKeysRevokeRoute
+  '/api/public/v1/alerts': typeof ApiPublicV1AlertsRoute
   '/api/public/v1/current': typeof ApiPublicV1CurrentRoute
+  '/api/public/v1/minutecast': typeof ApiPublicV1MinutecastRoute
+  '/api/public/v1/forecast/daily': typeof ApiPublicV1ForecastDailyRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -170,7 +198,10 @@ export interface FileRouteTypes {
     | '/api/subscription-check'
     | '/news/$id'
     | '/api/keys/revoke'
+    | '/api/public/v1/alerts'
     | '/api/public/v1/current'
+    | '/api/public/v1/minutecast'
+    | '/api/public/v1/forecast/daily'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -187,7 +218,10 @@ export interface FileRouteTypes {
     | '/api/subscription-check'
     | '/news/$id'
     | '/api/keys/revoke'
+    | '/api/public/v1/alerts'
     | '/api/public/v1/current'
+    | '/api/public/v1/minutecast'
+    | '/api/public/v1/forecast/daily'
   id:
     | '__root__'
     | '/'
@@ -204,7 +238,10 @@ export interface FileRouteTypes {
     | '/api/subscription-check'
     | '/news/$id'
     | '/api/keys/revoke'
+    | '/api/public/v1/alerts'
     | '/api/public/v1/current'
+    | '/api/public/v1/minutecast'
+    | '/api/public/v1/forecast/daily'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -318,11 +355,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiKeysRevokeRouteImport
       parentRoute: typeof ApiKeysRoute
     }
+    '/api/public/v1/minutecast': {
+      id: '/api/public/v1/minutecast'
+      path: '/public/v1/minutecast'
+      fullPath: '/api/public/v1/minutecast'
+      preLoaderRoute: typeof ApiPublicV1MinutecastRouteImport
+      parentRoute: typeof ApiRoute
+    }
     '/api/public/v1/current': {
       id: '/api/public/v1/current'
       path: '/public/v1/current'
       fullPath: '/api/public/v1/current'
       preLoaderRoute: typeof ApiPublicV1CurrentRouteImport
+      parentRoute: typeof ApiRoute
+    }
+    '/api/public/v1/alerts': {
+      id: '/api/public/v1/alerts'
+      path: '/public/v1/alerts'
+      fullPath: '/api/public/v1/alerts'
+      preLoaderRoute: typeof ApiPublicV1AlertsRouteImport
+      parentRoute: typeof ApiRoute
+    }
+    '/api/public/v1/forecast/daily': {
+      id: '/api/public/v1/forecast/daily'
+      path: '/public/v1/forecast/daily'
+      fullPath: '/api/public/v1/forecast/daily'
+      preLoaderRoute: typeof ApiPublicV1ForecastDailyRouteImport
       parentRoute: typeof ApiRoute
     }
   }
@@ -344,7 +402,10 @@ interface ApiRouteChildren {
   ApiCheckoutRoute: typeof ApiCheckoutRoute
   ApiKeysRoute: typeof ApiKeysRouteWithChildren
   ApiSubscriptionCheckRoute: typeof ApiSubscriptionCheckRoute
+  ApiPublicV1AlertsRoute: typeof ApiPublicV1AlertsRoute
   ApiPublicV1CurrentRoute: typeof ApiPublicV1CurrentRoute
+  ApiPublicV1MinutecastRoute: typeof ApiPublicV1MinutecastRoute
+  ApiPublicV1ForecastDailyRoute: typeof ApiPublicV1ForecastDailyRoute
 }
 
 const ApiRouteChildren: ApiRouteChildren = {
@@ -352,7 +413,10 @@ const ApiRouteChildren: ApiRouteChildren = {
   ApiCheckoutRoute: ApiCheckoutRoute,
   ApiKeysRoute: ApiKeysRouteWithChildren,
   ApiSubscriptionCheckRoute: ApiSubscriptionCheckRoute,
+  ApiPublicV1AlertsRoute: ApiPublicV1AlertsRoute,
   ApiPublicV1CurrentRoute: ApiPublicV1CurrentRoute,
+  ApiPublicV1MinutecastRoute: ApiPublicV1MinutecastRoute,
+  ApiPublicV1ForecastDailyRoute: ApiPublicV1ForecastDailyRoute,
 }
 
 const ApiRouteWithChildren = ApiRoute._addFileChildren(ApiRouteChildren)
@@ -380,12 +444,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}

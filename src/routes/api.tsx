@@ -335,19 +335,19 @@ function ApiPage() {
               method: "GET",
               path: "/api/public/v1/forecast/daily?lat={lat}&lon={lon}&days=7",
               desc: "Up to 16-day daily forecast with high/low, precip totals, and probabilities.",
-              live: false,
+              live: true,
             },
             {
               method: "GET",
               path: "/api/public/v1/minutecast?lat={lat}&lon={lon}",
               desc: "60-minute precipitation forecast at 1-minute resolution.",
-              live: false,
+              live: true,
             },
             {
               method: "GET",
               path: "/api/public/v1/alerts?lat={lat}&lon={lon}",
               desc: "Active severe weather advisories from official government sources.",
-              live: false,
+              live: true,
             },
           ].map((e) => (
             <article key={e.path} className="border border-border rounded-lg p-4">
@@ -372,18 +372,106 @@ function ApiPage() {
         </div>
       </section>
 
-      <section className="panel p-6">
-        <h2 className="text-lg font-semibold mb-3">Example request</h2>
-        <pre className="bg-surface-2 rounded-lg p-4 text-xs font-mono overflow-x-auto border border-border">
-{`curl -H "Authorization: Bearer YOUR_API_KEY" \\
-  "${typeof window !== "undefined" ? window.location.origin : "https://lucast.weather"}/api/public/v1/current?lat=40.71&lon=-74.01"`}
-        </pre>
-        <p className="text-xs text-muted-foreground mt-3">
-          Responses include <code className="font-mono text-foreground">X-RateLimit-Limit</code>{" "}
-          and <code className="font-mono text-foreground">X-RateLimit-Remaining</code> headers
-          so you can track quota in real time.
-        </p>
-      </section>
+      <CodeSamples />
+
     </PageShell>
+  );
+}
+
+const LANGS = ["curl", "javascript", "python", "go"] as const;
+type Lang = (typeof LANGS)[number];
+
+const ENDPOINT_SAMPLES = [
+  { id: "current", label: "Current conditions", path: "/api/public/v1/current?lat=40.71&lon=-74.01" },
+  { id: "daily", label: "Daily forecast", path: "/api/public/v1/forecast/daily?lat=40.71&lon=-74.01&days=7" },
+  { id: "minutecast", label: "MinuteCast", path: "/api/public/v1/minutecast?lat=40.71&lon=-74.01" },
+  { id: "alerts", label: "Alerts", path: "/api/public/v1/alerts?lat=40.71&lon=-74.01" },
+] as const;
+
+function snippet(lang: Lang, base: string, path: string) {
+  const url = `${base}${path}`;
+  switch (lang) {
+    case "curl":
+      return `curl -H "Authorization: Bearer $LUCAST_API_KEY" \\\n  "${url}"`;
+    case "javascript":
+      return `const res = await fetch(\n  "${url}",\n  { headers: { Authorization: \`Bearer \${process.env.LUCAST_API_KEY}\` } },\n);\nif (!res.ok) throw new Error(await res.text());\nconst data = await res.json();\nconsole.log(data);`;
+    case "python":
+      return `import os, requests\n\nres = requests.get(\n    "${url}",\n    headers={"Authorization": f"Bearer {os.environ['LUCAST_API_KEY']}"},\n    timeout=10,\n)\nres.raise_for_status()\nprint(res.json())`;
+    case "go":
+      return `req, _ := http.NewRequest("GET", "${url}", nil)\nreq.Header.Set("Authorization", "Bearer "+os.Getenv("LUCAST_API_KEY"))\nres, err := http.DefaultClient.Do(req)\nif err != nil { log.Fatal(err) }\ndefer res.Body.Close()\nio.Copy(os.Stdout, res.Body)`;
+  }
+}
+
+/** Copy-pasteable client code for every live endpoint, in four languages. */
+function CodeSamples() {
+  const [lang, setLang] = useState<Lang>("curl");
+  const [endpoint, setEndpoint] = useState<string>("current");
+  const [base, setBase] = useState("https://lucastweather.lovable.app");
+  const [copied, setCopied] = useState(false);
+
+  // Set after mount so SSR and first client render produce identical markup.
+  useEffect(() => setBase(window.location.origin), []);
+
+  const active = ENDPOINT_SAMPLES.find((e) => e.id === endpoint) ?? ENDPOINT_SAMPLES[0];
+  const code = snippet(lang, base, active.path);
+
+  return (
+    <section className="panel p-6">
+      <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
+        <h2 className="text-lg font-semibold">Code samples</h2>
+        <button
+          onClick={async () => {
+            await navigator.clipboard.writeText(code);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+          }}
+          className="chip px-2.5 py-1.5 text-xs flex items-center gap-1 hover:bg-accent/30"
+        >
+          {copied ? <Check className="size-3.5 text-success" /> : <Copy className="size-3.5" />}
+          {copied ? "Copied" : "Copy"}
+        </button>
+      </div>
+
+      <div className="flex flex-wrap gap-2 mb-3">
+        {ENDPOINT_SAMPLES.map((e) => (
+          <button
+            key={e.id}
+            onClick={() => setEndpoint(e.id)}
+            aria-pressed={endpoint === e.id}
+            className={`chip px-2.5 py-1 text-xs transition-colors ${
+              endpoint === e.id ? "bg-primary/20 text-primary border-primary/40" : "text-muted-foreground"
+            }`}
+          >
+            {e.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="chip p-0.5 flex w-fit mb-3">
+        {LANGS.map((l) => (
+          <button
+            key={l}
+            onClick={() => setLang(l)}
+            aria-pressed={lang === l}
+            className={`px-2.5 py-1 rounded text-xs capitalize transition-colors ${
+              lang === l ? "bg-primary/20 text-primary" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {l}
+          </button>
+        ))}
+      </div>
+
+      <pre className="bg-surface-2 rounded-lg p-4 text-xs font-mono overflow-x-auto border border-border whitespace-pre">
+{code}
+      </pre>
+
+      <p className="text-xs text-muted-foreground mt-3">
+        Every response includes{" "}
+        <code className="font-mono text-foreground">X-RateLimit-Limit</code> and{" "}
+        <code className="font-mono text-foreground">X-RateLimit-Remaining</code> headers so you
+        can track quota in real time. Keep your key server-side — never ship it in browser code.
+      </p>
+    </section>
   );
 }
