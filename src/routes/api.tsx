@@ -335,19 +335,19 @@ function ApiPage() {
               method: "GET",
               path: "/api/public/v1/forecast/daily?lat={lat}&lon={lon}&days=7",
               desc: "Up to 16-day daily forecast with high/low, precip totals, and probabilities.",
-              live: false,
+              live: true,
             },
             {
               method: "GET",
               path: "/api/public/v1/minutecast?lat={lat}&lon={lon}",
               desc: "60-minute precipitation forecast at 1-minute resolution.",
-              live: false,
+              live: true,
             },
             {
               method: "GET",
               path: "/api/public/v1/alerts?lat={lat}&lon={lon}",
               desc: "Active severe weather advisories from official government sources.",
-              live: false,
+              live: true,
             },
           ].map((e) => (
             <article key={e.path} className="border border-border rounded-lg p-4">
@@ -372,18 +372,8 @@ function ApiPage() {
         </div>
       </section>
 
-      <section className="panel p-6">
-        <h2 className="text-lg font-semibold mb-3">Example request</h2>
-        <pre className="bg-surface-2 rounded-lg p-4 text-xs font-mono overflow-x-auto border border-border">
-{`curl -H "Authorization: Bearer YOUR_API_KEY" \\
-  "${typeof window !== "undefined" ? window.location.origin : "https://lucast.weather"}/api/public/v1/current?lat=40.71&lon=-74.01"`}
-        </pre>
-        <p className="text-xs text-muted-foreground mt-3">
-          Responses include <code className="font-mono text-foreground">X-RateLimit-Limit</code>{" "}
-          and <code className="font-mono text-foreground">X-RateLimit-Remaining</code> headers
-          so you can track quota in real time.
-        </p>
-      </section>
+      <CodeSamples />
+
     </PageShell>
   );
 }
