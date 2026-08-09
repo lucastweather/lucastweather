@@ -210,7 +210,7 @@ function WeatherPage() {
           </div>
           <div>
             <div className="text-7xl font-semibold tracking-tighter text-gradient leading-none">
-              {data ? Math.round(data.current.temperature) : "—"}°
+              {currentWeather ? Math.round(currentWeather.temperature) : "—"}°
               <span className="text-3xl font-light text-muted-foreground align-top ml-1">F</span>
             </div>
             <div className="text-sm text-muted-foreground mt-2 flex items-center gap-2 flex-wrap">
@@ -225,6 +225,18 @@ function WeatherPage() {
                       currentWeather!.isDay,
                     )}
                   </span>
+                  {station && (
+                    <span
+                      className="chip px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-success border-success/40"
+                      title={`${station.stationName} (${station.stationId})${
+                        station.distanceMi !== null
+                          ? ` · ${station.distanceMi.toFixed(1)} mi away`
+                          : ""
+                      }`}
+                    >
+                      NOAA {station.stationId}
+                    </span>
+                  )}
                   {radarRain.hasRain ? (
                     <span className="chip px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-warning border-warning/40 flex items-center gap-1">
                       <Radar className="size-2.5" /> Radar-synced
@@ -248,38 +260,39 @@ function WeatherPage() {
           <Metric
             icon={<Wind className="size-4" />}
             label="Wind"
-            value={data ? `${Math.round(data.current.windSpeed)} mph` : "—"}
+            value={currentWeather ? `${Math.round(currentWeather.windSpeed)} mph` : "—"}
           />
           <Metric
             icon={<Wind className="size-4" />}
             label="Gusts"
-            value={data ? `${Math.round(data.current.windGust)} mph` : "—"}
+            value={currentWeather ? `${Math.round(currentWeather.windGust)} mph` : "—"}
           />
           <Metric
             icon={<Droplets className="size-4" />}
             label="Humidity"
-            value={data ? `${data.current.humidity}%` : "—"}
+            value={currentWeather ? `${Math.round(currentWeather.humidity)}%` : "—"}
           />
           <Metric
             icon={<Gauge className="size-4" />}
             label="Pressure"
-            value={data ? `${data.current.pressure.toFixed(2)} in` : "—"}
+            value={currentWeather ? `${currentWeather.pressure.toFixed(2)} in` : "—"}
           />
           <Metric
             icon={<Compass className="size-4" />}
             label="Wind Dir"
-            value={data ? `${data.current.windDirection}°` : "—"}
+            value={currentWeather ? `${Math.round(currentWeather.windDirection)}°` : "—"}
           />
           <Metric
             icon={<Thermometer className="size-4" />}
             label="Dew Point"
-            value={data ? `${Math.round(data.current.dewPoint)}°F` : "—"}
+            value={currentWeather ? `${Math.round(currentWeather.dewPoint)}°F` : "—"}
           />
           <Metric
             icon={<Sun className="size-4" />}
             label="UV Index"
-            value={data ? `${data.current.uvIndex}` : "—"}
+            value={currentWeather ? `${currentWeather.uvIndex}` : "—"}
           />
+
         </div>
       </section>
 
