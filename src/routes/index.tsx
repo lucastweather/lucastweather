@@ -51,6 +51,7 @@ import HurricaneTracker from "@/components/HurricaneTracker";
 import WeatherNews from "@/components/WeatherNews";
 import AirQualityPanel from "@/components/AirQualityPanel";
 import SunMoonPanel from "@/components/SunMoonPanel";
+import DonationForm from "@/components/DonationForm";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -307,7 +308,7 @@ function WeatherPage() {
 
       {/* Daily activity recommendations */}
       {data && (
-        <DailyRecommendations current={data.current} today={data.daily[0]} cityName={city.name} />
+        <DailyRecommendations current={currentWeather ?? data.current} today={data.daily[0]} cityName={city.name} />
       )}
 
       {/* Sponsored ad — hidden for premium subscribers */}
@@ -523,6 +524,8 @@ function WeatherPage() {
           )}
         </ul>
       </section>
+
+      <DonationForm />
     </PageShell>
   );
 }
