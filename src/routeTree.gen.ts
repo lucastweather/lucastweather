@@ -22,6 +22,7 @@ import { Route as ApiSubscriptionCheckRouteImport } from './routes/api.subscript
 import { Route as ApiKeysRouteImport } from './routes/api.keys'
 import { Route as ApiCheckoutRouteImport } from './routes/api.checkout'
 import { Route as ApiBillingPortalRouteImport } from './routes/api.billing-portal'
+import { Route as ApiPublicDonateRouteImport } from './routes/api.public.donate'
 import { Route as ApiKeysRevokeRouteImport } from './routes/api.keys.revoke'
 import { Route as ApiPublicV1MinutecastRouteImport } from './routes/api.public.v1.minutecast'
 import { Route as ApiPublicV1CurrentRouteImport } from './routes/api.public.v1.current'
@@ -93,6 +94,11 @@ const ApiBillingPortalRoute = ApiBillingPortalRouteImport.update({
   path: '/billing-portal',
   getParentRoute: () => ApiRoute,
 } as any)
+const ApiPublicDonateRoute = ApiPublicDonateRouteImport.update({
+  id: '/public/donate',
+  path: '/public/donate',
+  getParentRoute: () => ApiRoute,
+} as any)
 const ApiKeysRevokeRoute = ApiKeysRevokeRouteImport.update({
   id: '/revoke',
   path: '/revoke',
@@ -135,6 +141,7 @@ export interface FileRoutesByFullPath {
   '/api/subscription-check': typeof ApiSubscriptionCheckRoute
   '/news/$id': typeof NewsIdRoute
   '/api/keys/revoke': typeof ApiKeysRevokeRoute
+  '/api/public/donate': typeof ApiPublicDonateRoute
   '/api/public/v1/alerts': typeof ApiPublicV1AlertsRoute
   '/api/public/v1/current': typeof ApiPublicV1CurrentRoute
   '/api/public/v1/minutecast': typeof ApiPublicV1MinutecastRoute
@@ -155,6 +162,7 @@ export interface FileRoutesByTo {
   '/api/subscription-check': typeof ApiSubscriptionCheckRoute
   '/news/$id': typeof NewsIdRoute
   '/api/keys/revoke': typeof ApiKeysRevokeRoute
+  '/api/public/donate': typeof ApiPublicDonateRoute
   '/api/public/v1/alerts': typeof ApiPublicV1AlertsRoute
   '/api/public/v1/current': typeof ApiPublicV1CurrentRoute
   '/api/public/v1/minutecast': typeof ApiPublicV1MinutecastRoute
@@ -176,6 +184,7 @@ export interface FileRoutesById {
   '/api/subscription-check': typeof ApiSubscriptionCheckRoute
   '/news/$id': typeof NewsIdRoute
   '/api/keys/revoke': typeof ApiKeysRevokeRoute
+  '/api/public/donate': typeof ApiPublicDonateRoute
   '/api/public/v1/alerts': typeof ApiPublicV1AlertsRoute
   '/api/public/v1/current': typeof ApiPublicV1CurrentRoute
   '/api/public/v1/minutecast': typeof ApiPublicV1MinutecastRoute
@@ -198,6 +207,7 @@ export interface FileRouteTypes {
     | '/api/subscription-check'
     | '/news/$id'
     | '/api/keys/revoke'
+    | '/api/public/donate'
     | '/api/public/v1/alerts'
     | '/api/public/v1/current'
     | '/api/public/v1/minutecast'
@@ -218,6 +228,7 @@ export interface FileRouteTypes {
     | '/api/subscription-check'
     | '/news/$id'
     | '/api/keys/revoke'
+    | '/api/public/donate'
     | '/api/public/v1/alerts'
     | '/api/public/v1/current'
     | '/api/public/v1/minutecast'
@@ -238,6 +249,7 @@ export interface FileRouteTypes {
     | '/api/subscription-check'
     | '/news/$id'
     | '/api/keys/revoke'
+    | '/api/public/donate'
     | '/api/public/v1/alerts'
     | '/api/public/v1/current'
     | '/api/public/v1/minutecast'
@@ -348,6 +360,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiBillingPortalRouteImport
       parentRoute: typeof ApiRoute
     }
+    '/api/public/donate': {
+      id: '/api/public/donate'
+      path: '/public/donate'
+      fullPath: '/api/public/donate'
+      preLoaderRoute: typeof ApiPublicDonateRouteImport
+      parentRoute: typeof ApiRoute
+    }
     '/api/keys/revoke': {
       id: '/api/keys/revoke'
       path: '/revoke'
@@ -402,6 +421,7 @@ interface ApiRouteChildren {
   ApiCheckoutRoute: typeof ApiCheckoutRoute
   ApiKeysRoute: typeof ApiKeysRouteWithChildren
   ApiSubscriptionCheckRoute: typeof ApiSubscriptionCheckRoute
+  ApiPublicDonateRoute: typeof ApiPublicDonateRoute
   ApiPublicV1AlertsRoute: typeof ApiPublicV1AlertsRoute
   ApiPublicV1CurrentRoute: typeof ApiPublicV1CurrentRoute
   ApiPublicV1MinutecastRoute: typeof ApiPublicV1MinutecastRoute
@@ -413,6 +433,7 @@ const ApiRouteChildren: ApiRouteChildren = {
   ApiCheckoutRoute: ApiCheckoutRoute,
   ApiKeysRoute: ApiKeysRouteWithChildren,
   ApiSubscriptionCheckRoute: ApiSubscriptionCheckRoute,
+  ApiPublicDonateRoute: ApiPublicDonateRoute,
   ApiPublicV1AlertsRoute: ApiPublicV1AlertsRoute,
   ApiPublicV1CurrentRoute: ApiPublicV1CurrentRoute,
   ApiPublicV1MinutecastRoute: ApiPublicV1MinutecastRoute,
