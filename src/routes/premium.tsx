@@ -4,6 +4,7 @@ import { Crown, Check, Loader2, AlertCircle, Settings } from "lucide-react";
 import PageShell from "@/components/PageShell";
 import { createCheckout, customerPortal, checkSubscription } from "@/lib/stripe-checkout";
 import { useAuth, useSubscription } from "@/lib/auth-store";
+import DonationForm from "@/components/DonationForm";
 
 export const Route = createFileRoute("/premium")({
   validateSearch: (s: Record<string, unknown>) => ({
@@ -237,6 +238,8 @@ function PremiumPage() {
           );
         })}
       </section>
+
+      <DonationForm />
     </PageShell>
   );
 }

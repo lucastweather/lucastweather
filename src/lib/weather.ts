@@ -339,3 +339,80 @@ export async function fetchEarthquakes(): Promise<Earthquake[]> {
     }))
     .sort((a, b) => b.time - a.time);
 }
+
+// ---------------------------------------------------------------------------
+// Lucast hyperlocal post-processing
+//
+// Model output is never shown raw. The nearest NOAA surface station is treated
+// as ground truth for current conditions, and the resulting observation minus
+// model bias is propagated forward through the short-range hours with a
+// decaying weight (the same approach our AI ensemble uses to downscale coarse
+// model grids to a specific point).
+// ---------------------------------------------------------------------------
+
+import type { StationObservation } from "./noaa-station";
+
+/** Replaces modelled current conditions with live NOAA station observations. */
+export function applyStationObservation(
+  current: CurrentWeather,
+  obs: StationObservation | null,
+): CurrentWeather {
+  if (!obs) return current;
+  const cloudCover = obs.cloudCover ?? current.cloudCover;
+  return {
+    ...current,
+    temperature: obs.temperature ?? current.temperature,
+    apparent: obs.apparent ?? current.apparent,
+    humidity: obs.humidity !== null ? Math.round(obs.humidity) : current.humidity,
+    pressure: obs.pressure ?? current.pressure,
+    windSpeed: obs.windSpeed ?? current.windSpeed,
+    windGust: obs.windGust ?? obs.windSpeed ?? current.windGust,
+    windDirection:
+      obs.windDirection !== null ? Math.round(obs.windDirection) : current.windDirection,
+    dewPoint: obs.dewPoint ?? current.dewPoint,
+    cloudCover,
+    weatherCode: obs.weatherCode ?? current.weatherCode,
+  };
+}
+
+/**
+ * Bias-corrects the hourly model trace so it starts from what the station is
+ * actually reporting, blending back to raw model guidance over ~6 hours.
+ */
+export function biasCorrectHourly(
+  hourly: HourlyPoint[],
+  observed: CurrentWeather,
+  modelled: CurrentWeather,
+  utcOffsetSeconds: number,
+  decayHours = 6,
+): HourlyPoint[] {
+  if (hourly.length === 0) return hourly;
+  const dT = observed.temperature - modelled.temperature;
+  const dApparent = observed.apparent - modelled.apparent;
+  const dDew = observed.dewPoint - modelled.dewPoint;
+  const dHum = observed.humidity - modelled.humidity;
+  const dWind = observed.windSpeed - modelled.windSpeed;
+  if (
+    [dT, dApparent, dDew, dHum, dWind].every((d) => Math.abs(d) < 0.05)
+  ) {
+    return hourly;
+  }
+
+  const nowMs = Date.now() + utcOffsetSeconds * 1000;
+  return hourly.map((h) => {
+    const hMs = Date.parse(`${h.time}Z`);
+    const hoursAhead = (hMs - nowMs) / 3_600_000;
+    if (!Number.isFinite(hoursAhead) || hoursAhead < -1) return h;
+    const w = Math.max(0, 1 - Math.max(0, hoursAhead) / decayHours);
+    if (w <= 0) return h;
+    return {
+      ...h,
+      temp: h.temp + dT * w,
+      apparent: h.apparent + dApparent * w,
+      dewPoint: h.dewPoint + dDew * w,
+      humidity: Math.max(0, Math.min(100, h.humidity + dHum * w)),
+      windSpeed: Math.max(0, h.windSpeed + dWind * w),
+      windGust: Math.max(0, h.windGust + dWind * w),
+    };
+  });
+}

@@ -34,12 +34,15 @@ import {
   isRainWeatherCode,
   dryWeatherCodeFromCloud,
   syncCurrentWeather,
+  applyStationObservation,
+  biasCorrectHourly,
   type CurrentWeather,
   type DailyForecast,
   type HourlyPoint,
   type MinutelyPoint,
   type Earthquake,
 } from "@/lib/weather";
+import { fetchStationObservation, type StationObservation } from "@/lib/noaa-station";
 import RadarMap from "@/components/RadarMap";
 import EarthquakeMap from "@/components/EarthquakeMap";
 import HourlyForecast from "@/components/HourlyForecast";
@@ -48,6 +51,7 @@ import HurricaneTracker from "@/components/HurricaneTracker";
 import WeatherNews from "@/components/WeatherNews";
 import AirQualityPanel from "@/components/AirQualityPanel";
 import SunMoonPanel from "@/components/SunMoonPanel";
+import DonationForm from "@/components/DonationForm";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -102,6 +106,8 @@ function WeatherPage() {
   // the model hourly forecast. Tunable so users can tighten/loosen the sync to
   // match what they see on the radar map.
   const [syncWindowMin, setSyncWindowMin] = useState<number>(60);
+  // Live NOAA surface-station observation (ground truth for current conditions).
+  const [station, setStation] = useState<StationObservation | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -111,6 +117,7 @@ function WeatherPage() {
     // observations from the previously-selected city to the new city's data.
     setRadarRain({ intensity: 0, hasRain: false, checked: false });
     setSatClouds(null);
+    setStation(null);
     setData(null);
     fetchWeather(city.latitude, city.longitude, subscribed ? 16 : 7)
       .then((d) => {
@@ -118,6 +125,9 @@ function WeatherPage() {
       })
       .catch((e) => !cancelled && setErr(e.message))
       .finally(() => !cancelled && setLoading(false));
+    fetchStationObservation(city.latitude, city.longitude).then((obs) => {
+      if (!cancelled) setStation(obs);
+    });
     return () => {
       cancelled = true;
     };
@@ -128,10 +138,18 @@ function WeatherPage() {
   }, []);
 
   const filteredQuakes = quakes.filter((q) => q.mag >= magFilter).slice(0, 10);
-  const currentWeather = data ? syncCurrentWeather(data.current, radarRain, satClouds) : null;
+  // NOAA station observation first, then radar/satellite sync on top.
+  const observedCurrent = data ? applyStationObservation(data.current, station) : null;
+  const currentWeather = observedCurrent
+    ? syncCurrentWeather(observedCurrent, radarRain, satClouds)
+    : null;
+  const correctedHourly =
+    data && observedCurrent
+      ? biasCorrectHourly(data.hourly, observedCurrent, data.current, data.utcOffsetSeconds)
+      : (data?.hourly ?? []);
   const syncedHourly = data
     ? syncHourlyToRadar(
-        data.hourly,
+        correctedHourly,
         radarRain,
         data.utcOffsetSeconds,
         currentWeather ?? undefined,
@@ -193,7 +211,7 @@ function WeatherPage() {
           </div>
           <div>
             <div className="text-7xl font-semibold tracking-tighter text-gradient leading-none">
-              {data ? Math.round(data.current.temperature) : "—"}°
+              {currentWeather ? Math.round(currentWeather.temperature) : "—"}°
               <span className="text-3xl font-light text-muted-foreground align-top ml-1">F</span>
             </div>
             <div className="text-sm text-muted-foreground mt-2 flex items-center gap-2 flex-wrap">
@@ -208,6 +226,18 @@ function WeatherPage() {
                       currentWeather!.isDay,
                     )}
                   </span>
+                  {station && (
+                    <span
+                      className="chip px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-success border-success/40"
+                      title={`${station.stationName} (${station.stationId})${
+                        station.distanceMi !== null
+                          ? ` · ${station.distanceMi.toFixed(1)} mi away`
+                          : ""
+                      }`}
+                    >
+                      NOAA {station.stationId}
+                    </span>
+                  )}
                   {radarRain.hasRain ? (
                     <span className="chip px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-warning border-warning/40 flex items-center gap-1">
                       <Radar className="size-2.5" /> Radar-synced
@@ -231,38 +261,39 @@ function WeatherPage() {
           <Metric
             icon={<Wind className="size-4" />}
             label="Wind"
-            value={data ? `${Math.round(data.current.windSpeed)} mph` : "—"}
+            value={currentWeather ? `${Math.round(currentWeather.windSpeed)} mph` : "—"}
           />
           <Metric
             icon={<Wind className="size-4" />}
             label="Gusts"
-            value={data ? `${Math.round(data.current.windGust)} mph` : "—"}
+            value={currentWeather ? `${Math.round(currentWeather.windGust)} mph` : "—"}
           />
           <Metric
             icon={<Droplets className="size-4" />}
             label="Humidity"
-            value={data ? `${data.current.humidity}%` : "—"}
+            value={currentWeather ? `${Math.round(currentWeather.humidity)}%` : "—"}
           />
           <Metric
             icon={<Gauge className="size-4" />}
             label="Pressure"
-            value={data ? `${data.current.pressure.toFixed(2)} in` : "—"}
+            value={currentWeather ? `${currentWeather.pressure.toFixed(2)} in` : "—"}
           />
           <Metric
             icon={<Compass className="size-4" />}
             label="Wind Dir"
-            value={data ? `${data.current.windDirection}°` : "—"}
+            value={currentWeather ? `${Math.round(currentWeather.windDirection)}°` : "—"}
           />
           <Metric
             icon={<Thermometer className="size-4" />}
             label="Dew Point"
-            value={data ? `${Math.round(data.current.dewPoint)}°F` : "—"}
+            value={currentWeather ? `${Math.round(currentWeather.dewPoint)}°F` : "—"}
           />
           <Metric
             icon={<Sun className="size-4" />}
             label="UV Index"
-            value={data ? `${data.current.uvIndex}` : "—"}
+            value={currentWeather ? `${currentWeather.uvIndex}` : "—"}
           />
+
         </div>
       </section>
 
@@ -277,7 +308,7 @@ function WeatherPage() {
 
       {/* Daily activity recommendations */}
       {data && (
-        <DailyRecommendations current={data.current} today={data.daily[0]} cityName={city.name} />
+        <DailyRecommendations current={currentWeather ?? data.current} today={data.daily[0]} cityName={city.name} />
       )}
 
       {/* Sponsored ad — hidden for premium subscribers */}
@@ -493,6 +524,8 @@ function WeatherPage() {
           )}
         </ul>
       </section>
+
+      <DonationForm />
     </PageShell>
   );
 }
