@@ -105,6 +105,8 @@ function WeatherPage() {
   // the model hourly forecast. Tunable so users can tighten/loosen the sync to
   // match what they see on the radar map.
   const [syncWindowMin, setSyncWindowMin] = useState<number>(60);
+  // Live NOAA surface-station observation (ground truth for current conditions).
+  const [station, setStation] = useState<StationObservation | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -114,6 +116,7 @@ function WeatherPage() {
     // observations from the previously-selected city to the new city's data.
     setRadarRain({ intensity: 0, hasRain: false, checked: false });
     setSatClouds(null);
+    setStation(null);
     setData(null);
     fetchWeather(city.latitude, city.longitude, subscribed ? 16 : 7)
       .then((d) => {
@@ -121,6 +124,9 @@ function WeatherPage() {
       })
       .catch((e) => !cancelled && setErr(e.message))
       .finally(() => !cancelled && setLoading(false));
+    fetchStationObservation(city.latitude, city.longitude).then((obs) => {
+      if (!cancelled) setStation(obs);
+    });
     return () => {
       cancelled = true;
     };
@@ -131,10 +137,18 @@ function WeatherPage() {
   }, []);
 
   const filteredQuakes = quakes.filter((q) => q.mag >= magFilter).slice(0, 10);
-  const currentWeather = data ? syncCurrentWeather(data.current, radarRain, satClouds) : null;
+  // NOAA station observation first, then radar/satellite sync on top.
+  const observedCurrent = data ? applyStationObservation(data.current, station) : null;
+  const currentWeather = observedCurrent
+    ? syncCurrentWeather(observedCurrent, radarRain, satClouds)
+    : null;
+  const correctedHourly =
+    data && observedCurrent
+      ? biasCorrectHourly(data.hourly, observedCurrent, data.current, data.utcOffsetSeconds)
+      : (data?.hourly ?? []);
   const syncedHourly = data
     ? syncHourlyToRadar(
-        data.hourly,
+        correctedHourly,
         radarRain,
         data.utcOffsetSeconds,
         currentWeather ?? undefined,
