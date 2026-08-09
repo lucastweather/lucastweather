@@ -9,7 +9,7 @@ export default function PageShell({ children }: { children: ReactNode }) {
         {children}
       </main>
       <footer className="border-t border-border mt-10 py-6 text-center text-xs text-muted-foreground">
-        Lucast Weather · Powered by Lucast AI Ensemble · Seismic data via USGS
+        Lucast Weather · AI hyperlocal ensemble · Current conditions from NOAA/NWS stations · Seismic data via USGS
       </footer>
     </div>
   );
