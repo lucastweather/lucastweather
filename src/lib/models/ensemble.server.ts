@@ -104,25 +104,35 @@ function localIso(ms: number, offsetSeconds: number, withMinutes = true): string
 
 function solarEvents(dateMs: number, lat: number, lon: number) {
   const rad = Math.PI / 180;
+  const lw = -lon;
   const jDay = dateMs / 86400000 + 2440587.5;
-  const n = Math.round(jDay - 2451545.0 + 0.0008 - lon / 360);
-  const jStar = 2451545.0 + 0.0008 + n + lon / -360;
-  const M = (357.5291 + 0.98560028 * (jStar - 2451545)) % 360;
-  const C = 1.9148 * Math.sin(M * rad) + 0.02 * Math.sin(2 * M * rad) + 0.0003 * Math.sin(3 * M * rad);
-  const lambda = (M + C + 180 + 102.9372) % 360;
-  const jTransit = jStar + 0.0053 * Math.sin(M * rad) - 0.0069 * Math.sin(2 * lambda * rad);
-  const delta = Math.asin(Math.sin(lambda * rad) * Math.sin(23.44 * rad));
-  const cosOmega =
-    (Math.sin(-0.833 * rad) - Math.sin(lat * rad) * Math.sin(delta)) /
-    (Math.cos(lat * rad) * Math.cos(delta));
-  if (cosOmega > 1 || cosOmega < -1) return null;
-  const omega = Math.acos(cosOmega) / rad;
-  const toMs = (j: number) => (j - 2440587.5) * 86400000;
-  return {
-    sunrise: toMs(jTransit - omega / 360),
-    sunset: toMs(jTransit + omega / 360),
+  const compute = (nOffset: number) => {
+    const n = Math.round(jDay - 2451545.0 + 0.0008 - lw / 360) + nOffset;
+    const jStar = 2451545.0 + 0.0008 + n + lw / 360;
+    const M = (357.5291 + 0.98560028 * (jStar - 2451545)) % 360;
+    const C =
+      1.9148 * Math.sin(M * rad) + 0.02 * Math.sin(2 * M * rad) + 0.0003 * Math.sin(3 * M * rad);
+    const lambda = (M + C + 180 + 102.9372) % 360;
+    const jTransit = jStar + 0.0053 * Math.sin(M * rad) - 0.0069 * Math.sin(2 * lambda * rad);
+    const delta = Math.asin(Math.sin(lambda * rad) * Math.sin(23.44 * rad));
+    const cosOmega =
+      (Math.sin(-0.833 * rad) - Math.sin(lat * rad) * Math.sin(delta)) /
+      (Math.cos(lat * rad) * Math.cos(delta));
+    if (cosOmega > 1 || cosOmega < -1) return null;
+    const omega = Math.acos(cosOmega) / rad;
+    const toMs = (j: number) => (j - 2440587.5) * 86400000;
+    return { sunrise: toMs(jTransit - omega / 360), sunset: toMs(jTransit + omega / 360) };
   };
+
+  let ev = compute(0);
+  if (!ev) return null;
+  const DAY = 86400000;
+  if (ev.sunrise - dateMs > 12 * 3600000) ev = compute(-1) ?? ev;
+  else if (dateMs - ev.sunset > 12 * 3600000) ev = compute(1) ?? ev;
+  void DAY;
+  return ev;
 }
+
 
 // ---------------------------------------------------------------------------
 // blending
