@@ -33,46 +33,36 @@ export const Route = createFileRoute("/api/public/v1/current")({
           );
         }
 
-        const params = new URLSearchParams({
-          latitude: String(coords.lat),
-          longitude: String(coords.lon),
-          current:
-            "temperature_2m,apparent_temperature,relative_humidity_2m,pressure_msl,wind_speed_10m,wind_gusts_10m,wind_direction_10m,dew_point_2m,uv_index,cloud_cover,precipitation,is_day,weather_code",
-          temperature_unit: "fahrenheit",
-          wind_speed_unit: "mph",
-          precipitation_unit: "inch",
-          pressure_unit: "inHg",
-          timezone: "auto",
-        });
-
-        const upstream = await fetch(`https://api.open-meteo.com/v1/forecast?${params}`);
-        if (!upstream.ok) {
+        let data;
+        try {
+          const { buildEnsembleForecast } = await import("@/lib/models/ensemble.server");
+          data = await buildEnsembleForecast(coords.lat, coords.lon, 1);
+        } catch {
           await logUsage(row.key_id, "/v1/current", 502);
           return jsonResponse({ error: "Upstream weather provider failed." }, 502);
         }
 
-        const data = await upstream.json();
-        const c = data.current ?? {};
+        const c = data.current;
         await logUsage(row.key_id, "/v1/current", 200);
 
         return jsonResponse(
           {
-            location: { lat: coords.lat, lon: coords.lon, timezone: data.timezone },
+            location: { lat: coords.lat, lon: coords.lon, utc_offset_seconds: data.utcOffsetSeconds },
             current: {
-              temperature_f: c.temperature_2m,
-              apparent_f: c.apparent_temperature,
-              humidity: c.relative_humidity_2m,
-              pressure_inhg: c.pressure_msl,
-              wind_speed_mph: c.wind_speed_10m,
-              wind_gust_mph: c.wind_gusts_10m,
-              wind_direction_deg: c.wind_direction_10m,
-              dew_point_f: c.dew_point_2m,
-              uv_index: c.uv_index,
-              cloud_cover_pct: c.cloud_cover,
-              precipitation_in: c.precipitation,
-              is_day: c.is_day === 1,
-              weather_code: c.weather_code,
-              observed_at: c.time,
+              temperature_f: c.temperature,
+              apparent_f: c.apparent,
+              humidity: c.humidity,
+              pressure_inhg: c.pressure,
+              wind_speed_mph: c.windSpeed,
+              wind_gust_mph: c.windGust,
+              wind_direction_deg: c.windDirection,
+              dew_point_f: c.dewPoint,
+              uv_index: c.uvIndex,
+              cloud_cover_pct: c.cloudCover,
+              precipitation_in: data.hourly[0]?.precip ?? 0,
+              is_day: c.isDay,
+              weather_code: c.weatherCode,
+              observed_at: new Date().toISOString(),
             },
             quota: { limit: row.monthly_limit, remaining: row.remaining },
           },

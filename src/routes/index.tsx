@@ -119,7 +119,7 @@ function WeatherPage() {
     setSatClouds(null);
     setStation(null);
     setData(null);
-    fetchWeather(city.latitude, city.longitude, subscribed ? 16 : 7)
+    fetchWeather(city.latitude, city.longitude, subscribed ? 16 : 7, city.timezone)
       .then((d) => {
         if (!cancelled) setData(d);
       })

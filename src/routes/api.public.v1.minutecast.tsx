@@ -28,52 +28,25 @@ export const Route = createFileRoute("/api/public/v1/minutecast")({
           );
         }
 
-        const params = new URLSearchParams({
-          latitude: String(coords.lat),
-          longitude: String(coords.lon),
-          minutely_15: "precipitation,precipitation_probability,weather_code",
-          forecast_minutely_15: "8",
-          precipitation_unit: "inch",
-          timezone: "UTC",
-        });
-
-        const upstream = await fetch(`https://api.open-meteo.com/v1/forecast?${params}`);
-        if (!upstream.ok) {
+        let data;
+        try {
+          const { buildEnsembleForecast } = await import("@/lib/models/ensemble.server");
+          data = await buildEnsembleForecast(coords.lat, coords.lon, 1);
+        } catch {
           await logUsage(row.key_id, "/v1/minutecast", 502);
           return jsonResponse({ error: "Upstream weather provider failed." }, 502);
         }
 
-        const data = await upstream.json();
-        const m = data.minutely_15 ?? {};
-        const times: string[] = m.time ?? [];
         const now = Date.now();
-
-        // Find the 15-minute step covering "now", then interpolate to minutes.
-        const steps = times.map((t, i) => ({
-          at: Date.parse(`${t}Z`),
-          precip: Number(m.precipitation?.[i] ?? 0),
-          prob: Number(m.precipitation_probability?.[i] ?? 0),
-          code: m.weather_code?.[i] ?? 0,
-        }));
-        const startIdx = Math.max(
-          0,
-          steps.findIndex((s) => s.at + 15 * 60_000 > now),
-        );
-
-        const minutes = Array.from({ length: 60 }, (_, i) => {
-          const at = now + i * 60_000;
-          const stepIdx = Math.min(
-            steps.length - 1,
-            startIdx + Math.floor((at - (steps[startIdx]?.at ?? now)) / (15 * 60_000)),
-          );
-          const step = steps[stepIdx] ?? { precip: 0, prob: 0, code: 0 };
-          const perMinute = step.precip / 15;
+        const minutes = data.minutely.slice(0, 60).map((pt, i) => {
+          const perMinute = pt.precip;
           return {
             minute: i,
-            at: new Date(at).toISOString(),
+            at: pt.time,
             precipitation_in: Number(perMinute.toFixed(4)),
-            probability_pct: step.prob,
-            weather_code: step.code,
+            probability_pct: Math.round(pt.precipProb),
+            weather_code:
+              perMinute >= 0.05 ? 65 : perMinute >= 0.02 ? 63 : perMinute > 0 ? 61 : 0,
             intensity:
               perMinute >= 0.05
                 ? "heavy"
@@ -86,6 +59,7 @@ export const Route = createFileRoute("/api/public/v1/minutecast")({
                       : "none",
           };
         });
+        void now;
 
         const wet = minutes.filter((x) => x.intensity !== "none" && x.intensity !== "trace");
         const summary = wet.length

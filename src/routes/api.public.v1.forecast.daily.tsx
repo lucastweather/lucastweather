@@ -29,47 +29,43 @@ export const Route = createFileRoute("/api/public/v1/forecast/daily")({
         const rawDays = parseInt(url.searchParams.get("days") ?? "7", 10);
         const days = Number.isFinite(rawDays) ? Math.min(16, Math.max(1, rawDays)) : 7;
 
-        const params = new URLSearchParams({
-          latitude: String(coords.lat),
-          longitude: String(coords.lon),
-          daily:
-            "weather_code,temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,wind_gusts_10m_max,uv_index_max,sunrise,sunset",
-          forecast_days: String(days),
-          temperature_unit: "fahrenheit",
-          wind_speed_unit: "mph",
-          precipitation_unit: "inch",
-          timezone: "auto",
-        });
-
-        const upstream = await fetch(`https://api.open-meteo.com/v1/forecast?${params}`);
-        if (!upstream.ok) {
+        let data;
+        try {
+          const { buildEnsembleForecast } = await import("@/lib/models/ensemble.server");
+          data = await buildEnsembleForecast(coords.lat, coords.lon, days);
+        } catch {
           await logUsage(row.key_id, "/v1/forecast/daily", 502);
           return jsonResponse({ error: "Upstream weather provider failed." }, 502);
         }
 
-        const data = await upstream.json();
-        const d = data.daily ?? {};
-        const list = (d.time ?? []).map((date: string, i: number) => ({
-          date,
-          weather_code: d.weather_code?.[i],
-          high_f: d.temperature_2m_max?.[i],
-          low_f: d.temperature_2m_min?.[i],
-          feels_high_f: d.apparent_temperature_max?.[i],
-          feels_low_f: d.apparent_temperature_min?.[i],
-          precipitation_in: d.precipitation_sum?.[i],
-          precipitation_probability_pct: d.precipitation_probability_max?.[i],
-          wind_speed_max_mph: d.wind_speed_10m_max?.[i],
-          wind_gust_max_mph: d.wind_gusts_10m_max?.[i],
-          uv_index_max: d.uv_index_max?.[i],
-          sunrise: d.sunrise?.[i],
-          sunset: d.sunset?.[i],
-        }));
+        const list = data.daily.map((d) => {
+          const dayHours = data.hourly.filter((h) => h.time.startsWith(d.date));
+          const max = (pick: (h: (typeof dayHours)[number]) => number) =>
+            dayHours.length ? Math.max(...dayHours.map(pick)) : null;
+          const min = (pick: (h: (typeof dayHours)[number]) => number) =>
+            dayHours.length ? Math.min(...dayHours.map(pick)) : null;
+          return {
+            date: d.date,
+            weather_code: d.weatherCode,
+            high_f: d.tMax,
+            low_f: d.tMin,
+            feels_high_f: max((h) => h.apparent),
+            feels_low_f: min((h) => h.apparent),
+            precipitation_in: d.precipSum,
+            precipitation_probability_pct: d.precipProb,
+            wind_speed_max_mph: max((h) => h.windSpeed),
+            wind_gust_max_mph: max((h) => h.windGust),
+            uv_index_max: max((h) => h.uvIndex),
+            sunrise: d.sunrise,
+            sunset: d.sunset,
+          };
+        });
 
         await logUsage(row.key_id, "/v1/forecast/daily", 200);
 
         return jsonResponse(
           {
-            location: { lat: coords.lat, lon: coords.lon, timezone: data.timezone },
+            location: { lat: coords.lat, lon: coords.lon, utc_offset_seconds: data.utcOffsetSeconds },
             days: list,
             quota: { limit: row.monthly_limit, remaining: row.remaining },
           },
