@@ -115,105 +115,26 @@ export async function geocode(query: string): Promise<GeoResult[]> {
   return data.results ?? [];
 }
 
-export async function fetchWeather(lat: number, lon: number, forecastDays = 16) {
-  const params = new URLSearchParams({
-    latitude: String(lat),
-    longitude: String(lon),
-    current:
-      "temperature_2m,apparent_temperature,relative_humidity_2m,pressure_msl,wind_speed_10m,wind_gusts_10m,wind_direction_10m,dew_point_2m,uv_index,cloud_cover,is_day,weather_code",
-    hourly:
-      "temperature_2m,apparent_temperature,relative_humidity_2m,dew_point_2m,pressure_msl,uv_index,precipitation_probability,precipitation,weather_code,wind_speed_10m,wind_gusts_10m,is_day,cloud_cover",
-    daily:
-      "weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,sunrise,sunset",
-    minutely_15: "precipitation,precipitation_probability",
-    temperature_unit: "fahrenheit",
-    wind_speed_unit: "mph",
-    precipitation_unit: "inch",
-    pressure_unit: "inHg",
-    timezone: "auto",
-    forecast_days: String(Math.max(1, Math.min(16, forecastDays))),
-    forecast_minutely_15: "16",
-    models: "best_match",
+export async function fetchWeather(
+  lat: number,
+  lon: number,
+  forecastDays = 16,
+  timezone?: string,
+) {
+  const { getEnsembleWeather } = await import("./weather.functions");
+  const d = await getEnsembleWeather({
+    data: { lat, lon, days: Math.max(1, Math.min(16, forecastDays)), timezone },
   });
-  const res = await fetch(`${API}?${params}`);
-  if (!res.ok) throw new Error("Failed to fetch weather");
-  const d = await res.json();
 
-  const current: CurrentWeather = {
-    temperature: d.current.temperature_2m,
-    apparent: d.current.apparent_temperature,
-    humidity: d.current.relative_humidity_2m,
-    pressure: d.current.pressure_msl,
-    windSpeed: d.current.wind_speed_10m,
-    windGust: d.current.wind_gusts_10m ?? d.current.wind_speed_10m,
-    windDirection: d.current.wind_direction_10m,
-    dewPoint: d.current.dew_point_2m,
-    uvIndex: d.current.uv_index,
-    cloudCover: d.current.cloud_cover ?? 0,
-    isDay: d.current.is_day === 1,
-    weatherCode: d.current.weather_code,
+  return {
+    current: d.current as CurrentWeather,
+    daily: d.daily as DailyForecast[],
+    hourly: d.hourly as HourlyPoint[],
+    minutely: d.minutely as MinutelyPoint[],
+    utcOffsetSeconds: d.utcOffsetSeconds,
   };
-
-  const daily: DailyForecast[] = d.daily.time.map((t: string, i: number) => ({
-    date: t,
-    weatherCode: d.daily.weather_code[i],
-    tMax: d.daily.temperature_2m_max[i],
-    tMin: d.daily.temperature_2m_min[i],
-    precipSum: d.daily.precipitation_sum[i],
-    precipProb: d.daily.precipitation_probability_max[i],
-    sunrise: d.daily.sunrise?.[i],
-    sunset: d.daily.sunset?.[i],
-  }));
-
-  const hourly: HourlyPoint[] = (d.hourly?.time ?? []).map((t: string, i: number) => ({
-    time: t,
-    temp: d.hourly.temperature_2m[i],
-    precipProb: d.hourly.precipitation_probability[i] ?? 0,
-    precip: d.hourly.precipitation[i] ?? 0,
-    weatherCode: d.hourly.weather_code[i],
-    windSpeed: d.hourly.wind_speed_10m[i],
-    windGust: d.hourly.wind_gusts_10m?.[i] ?? d.hourly.wind_speed_10m[i],
-    apparent: d.hourly.apparent_temperature?.[i] ?? d.hourly.temperature_2m[i],
-    humidity: d.hourly.relative_humidity_2m?.[i] ?? 0,
-    dewPoint: d.hourly.dew_point_2m?.[i] ?? d.hourly.temperature_2m[i],
-    pressure: d.hourly.pressure_msl?.[i] ?? 0,
-    uvIndex: d.hourly.uv_index?.[i] ?? 0,
-    isDay: d.hourly.is_day?.[i] === 1,
-    cloudCover: d.hourly.cloud_cover?.[i] ?? 0,
-  }));
-
-  // Build true minute-by-minute precipitation by interpolating the 15-minute
-  // model output. We synthesize 60 minutes of per-minute values using a smooth
-  // cubic-ish interpolation between sample points. This gives a minute-level
-  // visualization without requiring a separate radar nowcast feed.
-  const rawTimes: string[] = d.minutely_15?.time ?? [];
-  const rawPrecip: number[] = d.minutely_15?.precipitation ?? [];
-  const rawProb: number[] = d.minutely_15?.precipitation_probability ?? [];
-  const minutely: MinutelyPoint[] = [];
-  if (rawTimes.length >= 2) {
-    const start = new Date(rawTimes[0]).getTime();
-    for (let m = 0; m < 60; m++) {
-      const tMs = start + m * 60_000;
-      const idxF = m / 15;
-      const i0 = Math.min(rawTimes.length - 1, Math.floor(idxF));
-      const i1 = Math.min(rawTimes.length - 1, i0 + 1);
-      const f = idxF - i0;
-      const p0 = (rawPrecip[i0] ?? 0) / 15;
-      const p1 = (rawPrecip[i1] ?? 0) / 15;
-      const precip = p0 * (1 - f) + p1 * f;
-      const prob = (rawProb[i0] ?? 0) * (1 - f) + (rawProb[i1] ?? 0) * f;
-      minutely.push({
-        time: new Date(tMs).toISOString(),
-        precip,
-        precipProb: prob,
-      });
-    }
-  }
-
-  const utcOffsetSeconds: number = d.utc_offset_seconds ?? 0;
-
-  return { current, daily, hourly, minutely, utcOffsetSeconds };
 }
+
 
 export function weatherIcon(code: number, isDay = true, cloudCover = 0): string {
   if (code === 0) return isDay ? "☀️" : "🌙";
