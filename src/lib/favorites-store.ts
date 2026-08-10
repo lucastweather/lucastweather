@@ -25,21 +25,26 @@ function broadcast() {
 }
 
 export async function refreshFavorites() {
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  if (!session) {
+  try {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (!session) {
+      cache = [];
+      broadcast();
+      return;
+    }
+    const { data, error } = await supabase
+      .from("favorites")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (error) return;
+    cache = (data ?? []) as FavoriteRow[];
+    broadcast();
+  } catch {
     cache = [];
     broadcast();
-    return;
   }
-  const { data, error } = await supabase
-    .from("favorites")
-    .select("*")
-    .order("created_at", { ascending: false });
-  if (error) return;
-  cache = (data ?? []) as FavoriteRow[];
-  broadcast();
 }
 
 export function useFavorites() {
@@ -47,15 +52,22 @@ export function useFavorites() {
 
   useEffect(() => {
     listeners.add(setRows);
-    refreshFavorites();
-    const { data: sub } = supabase.auth.onAuthStateChange(() => {
-      refreshFavorites();
-    });
+    void refreshFavorites();
+    let unsub: (() => void) | undefined;
+    try {
+      const { data: sub } = supabase.auth.onAuthStateChange(() => {
+        void refreshFavorites();
+      });
+      unsub = () => sub.subscription.unsubscribe();
+    } catch {
+      unsub = undefined;
+    }
     return () => {
       listeners.delete(setRows);
-      sub.subscription.unsubscribe();
+      unsub?.();
     };
   }, []);
+
 
   const cities = rows.filter((r) => r.kind === "city");
   const cameras = rows.filter((r) => r.kind === "camera");
