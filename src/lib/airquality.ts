@@ -1,4 +1,6 @@
-// Air quality + pollen via Open-Meteo's free Air Quality API.
+// Air quality + pollen from a server-side blend of chemistry-transport models
+// (CAMS global + CAMS Europe regional ensemble), with the US AQI recomputed
+// locally from the blended concentrations.
 
 export type AirQuality = {
   usAqi: number | null;
@@ -8,43 +10,20 @@ export type AirQuality = {
   no2: number | null;
   so2: number | null;
   co: number | null;
-  // Pollen (Europe-only from Open-Meteo CAMS, may be null elsewhere)
   grassPollen: number | null;
   treePollen: number | null;
   weedPollen: number | null;
 };
 
-const URL = "https://air-quality-api.open-meteo.com/v1/air-quality";
-
 export async function fetchAirQuality(lat: number, lon: number): Promise<AirQuality | null> {
-  const params = new URLSearchParams({
-    latitude: String(lat),
-    longitude: String(lon),
-    current:
-      "us_aqi,pm2_5,pm10,ozone,nitrogen_dioxide,sulphur_dioxide,carbon_monoxide,grass_pollen,tree_pollen,weed_pollen",
-    timezone: "auto",
-  });
   try {
-    const res = await fetch(`${URL}?${params}`);
-    if (!res.ok) return null;
-    const d = await res.json();
-    const c = d.current ?? {};
-    return {
-      usAqi: c.us_aqi ?? null,
-      pm25: c.pm2_5 ?? null,
-      pm10: c.pm10 ?? null,
-      ozone: c.ozone ?? null,
-      no2: c.nitrogen_dioxide ?? null,
-      so2: c.sulphur_dioxide ?? null,
-      co: c.carbon_monoxide ?? null,
-      grassPollen: c.grass_pollen ?? null,
-      treePollen: c.tree_pollen ?? null,
-      weedPollen: c.weed_pollen ?? null,
-    };
+    const { getBlendedAirQuality } = await import("./airquality.functions");
+    return await getBlendedAirQuality({ data: { lat, lon } });
   } catch {
     return null;
   }
 }
+
 
 export function aqiCategory(aqi: number | null): {
   label: string;
