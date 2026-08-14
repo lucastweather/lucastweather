@@ -32,7 +32,8 @@ export default function AirQualityPanel({ lat, lon }: { lat: number; lon: number
         </span>
         Air Quality & Pollen
         <span className="chip px-2 py-0.5 text-[10px] text-primary border-primary/40">
-          US AQI · CAMS
+          US AQI · CAMS blend
+
         </span>
       </h2>
 
