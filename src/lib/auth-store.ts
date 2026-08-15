@@ -18,7 +18,14 @@ function setSubState(next: SubState) {
 }
 
 async function refreshSubscription() {
-  const { data: { session } } = await supabase.auth.getSession();
+  let session: Session | null = null;
+  try {
+    session = (await supabase.auth.getSession()).data.session;
+  } catch {
+    setSubState({ subscribed: false, tier: null, endsAt: null, loading: false });
+    return;
+  }
+
   if (!session) {
     setSubState({ subscribed: false, tier: null, endsAt: null, loading: false });
     return;
@@ -51,23 +58,37 @@ export function useAuth() {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
-      setSession(s);
-      setUser(s?.user ?? null);
-      setTimeout(() => refreshSubscription(), 0);
-    });
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+    let unsub: (() => void) | undefined;
+    try {
+      const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
+        setSession(s);
+        setUser(s?.user ?? null);
+        setTimeout(() => refreshSubscription(), 0);
+      });
+      unsub = () => sub.subscription.unsubscribe();
+      supabase.auth
+        .getSession()
+        .then(({ data: { session } }) => {
+          setSession(session);
+          setUser(session?.user ?? null);
+          setReady(true);
+          refreshSubscription();
+        })
+        .catch(() => setReady(true));
+    } catch {
       setReady(true);
-      refreshSubscription();
-    });
-    return () => sub.subscription.unsubscribe();
+    }
+    return () => unsub?.();
   }, []);
 
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch {
+      /* backend unavailable */
+    }
   }, []);
+
 
   return { session, user, ready, signOut };
 }
