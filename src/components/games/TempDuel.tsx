@@ -54,7 +54,7 @@ export default function TempDuel() {
         fetchWeather(p[0].lat, p[0].lon, 1),
         fetchWeather(p[1].lat, p[1].lon, 1),
       ]);
-      setTemps([a.current.temperature_2m, b.current.temperature_2m]);
+      setTemps([a.current.temperature, b.current.temperature]);
     } catch {
       setTemps(null);
     } finally {

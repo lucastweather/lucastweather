@@ -13,6 +13,7 @@ import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as RadarRouteImport } from './routes/radar'
 import { Route as PremiumRouteImport } from './routes/premium'
 import { Route as NewsRouteImport } from './routes/news'
+import { Route as GamesRouteImport } from './routes/games'
 import { Route as ApiRouteImport } from './routes/api'
 import { Route as AlertsRouteImport } from './routes/alerts'
 import { Route as AdminRouteImport } from './routes/admin'
@@ -47,6 +48,11 @@ const PremiumRoute = PremiumRouteImport.update({
 const NewsRoute = NewsRouteImport.update({
   id: '/news',
   path: '/news',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GamesRoute = GamesRouteImport.update({
+  id: '/games',
+  path: '/games',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiRoute = ApiRouteImport.update({
@@ -131,6 +137,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRoute
   '/alerts': typeof AlertsRoute
   '/api': typeof ApiRouteWithChildren
+  '/games': typeof GamesRoute
   '/news': typeof NewsRouteWithChildren
   '/premium': typeof PremiumRoute
   '/radar': typeof RadarRoute
@@ -152,6 +159,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminRoute
   '/alerts': typeof AlertsRoute
   '/api': typeof ApiRouteWithChildren
+  '/games': typeof GamesRoute
   '/news': typeof NewsRouteWithChildren
   '/premium': typeof PremiumRoute
   '/radar': typeof RadarRoute
@@ -174,6 +182,7 @@ export interface FileRoutesById {
   '/admin': typeof AdminRoute
   '/alerts': typeof AlertsRoute
   '/api': typeof ApiRouteWithChildren
+  '/games': typeof GamesRoute
   '/news': typeof NewsRouteWithChildren
   '/premium': typeof PremiumRoute
   '/radar': typeof RadarRoute
@@ -197,6 +206,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/alerts'
     | '/api'
+    | '/games'
     | '/news'
     | '/premium'
     | '/radar'
@@ -218,6 +228,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/alerts'
     | '/api'
+    | '/games'
     | '/news'
     | '/premium'
     | '/radar'
@@ -239,6 +250,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/alerts'
     | '/api'
+    | '/games'
     | '/news'
     | '/premium'
     | '/radar'
@@ -261,6 +273,7 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRoute
   AlertsRoute: typeof AlertsRoute
   ApiRoute: typeof ApiRouteWithChildren
+  GamesRoute: typeof GamesRoute
   NewsRoute: typeof NewsRouteWithChildren
   PremiumRoute: typeof PremiumRoute
   RadarRoute: typeof RadarRoute
@@ -295,6 +308,13 @@ declare module '@tanstack/react-router' {
       path: '/news'
       fullPath: '/news'
       preLoaderRoute: typeof NewsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/games': {
+      id: '/games'
+      path: '/games'
+      fullPath: '/games'
+      preLoaderRoute: typeof GamesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api': {
@@ -457,6 +477,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRoute,
   AlertsRoute: AlertsRoute,
   ApiRoute: ApiRouteWithChildren,
+  GamesRoute: GamesRoute,
   NewsRoute: NewsRouteWithChildren,
   PremiumRoute: PremiumRoute,
   RadarRoute: RadarRoute,
