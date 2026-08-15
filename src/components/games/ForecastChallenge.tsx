@@ -34,14 +34,14 @@ export default function ForecastChallenge() {
     if (!day || result) return;
     const g = Number(guess);
     if (!Number.isFinite(g)) return;
-    const actual = cToF(day.tempMax);
+    const actual = cToF(day.tMax);
     const diff = Math.abs(actual - g);
     const points = Math.max(0, 100 - diff * 10);
     setResult({ diff, points });
     setTotal((t) => t + points);
   }
 
-  const actualF = day ? cToF(day.tempMax) : null;
+  const actualF = day ? cToF(day.tMax) : null;
 
   return (
     <div className="panel p-5 lg:p-6">
