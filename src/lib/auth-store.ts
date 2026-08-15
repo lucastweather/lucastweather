@@ -18,7 +18,14 @@ function setSubState(next: SubState) {
 }
 
 async function refreshSubscription() {
-  const { data: { session } } = await supabase.auth.getSession();
+  let session: Session | null = null;
+  try {
+    session = (await supabase.auth.getSession()).data.session;
+  } catch {
+    setSubState({ subscribed: false, tier: null, endsAt: null, loading: false });
+    return;
+  }
+
   if (!session) {
     setSubState({ subscribed: false, tier: null, endsAt: null, loading: false });
     return;
