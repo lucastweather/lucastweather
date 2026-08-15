@@ -1,5 +1,5 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { Cloud, Map, ShieldAlert, Code2, Crown, LogIn, User as UserIcon } from "lucide-react";
+import { Cloud, Map, ShieldAlert, Code2, Crown, LogIn, User as UserIcon, Gamepad2 } from "lucide-react";
 import CitySearch from "./CitySearch";
 import { useCity } from "@/lib/city-store";
 import { useAuth, useSubscription } from "@/lib/auth-store";
@@ -8,6 +8,7 @@ const tabs = [
   { to: "/", label: "Weather", icon: Cloud },
   { to: "/radar", label: "Radar & Maps", icon: Map },
   { to: "/alerts", label: "Alerts", icon: ShieldAlert },
+  { to: "/games", label: "Games", icon: Gamepad2 },
   { to: "/api", label: "API", icon: Code2 },
   { to: "/premium", label: "Premium", icon: Crown },
 ] as const;
